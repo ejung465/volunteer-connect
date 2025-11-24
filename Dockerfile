@@ -3,31 +3,31 @@
 FROM node:22-alpine as frontend-builder
 WORKDIR /app
 
-# Copy dependency files (for caching)
+# Copy files needed for the frontend build (package.json, src, vite config)
+# Note: This is an adjustment from the previous version to fit your project structure.
 COPY package*.json ./
-# Run 'npm ci' to install dependencies (including dev deps needed for the Vite build)
-RUN npm ci 
+COPY vite.config.ts ./
+COPY src ./src
 
-# Copy the actual client code (assuming it's in a 'client' folder)
-COPY client ./client
-# Execute the Vite build command
-RUN npm run build --prefix client
+# Install dependencies and build the frontend (output goes to /app/dist)
+RUN npm ci 
+RUN npm run build 
 
 # --- STAGE 2: FINAL PRODUCTION SERVER ---
-# Use a fresh, clean Node.js image. This image will NOT have the heavy build tools.
+# Use a fresh, clean Node.js image for the backend runtime.
 FROM node:22-alpine
 WORKDIR /app
 
 # Copy the static files (the "dist" folder) from Stage 1 into the new image.
-# This is the ONLY thing we keep from the frontend-builder.
-COPY --from=frontend-builder /app/client/dist ./dist
+COPY --from=frontend-builder /app/dist ./dist
 
 # Install ONLY the necessary production dependencies for the Express backend
+# Copy only the files needed to install backend dependencies
 COPY package*.json ./
 COPY server/package*.json ./server/
 RUN npm ci --omit=dev && cd server && npm ci --omit=dev && cd ..
 
-# Copy the Express backend source code
+# Copy the rest of the Express backend source code
 COPY server ./server
 
 # Configure the runtime environment
