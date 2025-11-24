@@ -1,17 +1,17 @@
 # --- STAGE 1: FRONTEND BUILDER ---
-# Use a Node.js image to install all dependencies and build the React/Vite app.
 FROM node:22-alpine as frontend-builder
 WORKDIR /app
 
-# Copy files needed for the frontend build (package.json, src, vite config)
-# Note: This is an adjustment from the previous version to fit your project structure.
+# Copy files needed for the frontend build (package.json, src, vite config, ts config)
 COPY package*.json ./
 COPY vite.config.ts ./
+COPY tsconfig.json ./   <-- ADD THIS LINE
 COPY src ./src
 
 # Install dependencies and build the frontend (output goes to /app/dist)
 RUN npm ci 
 RUN npm run build 
+# ... rest of the Dockerfile ...
 
 # --- STAGE 2: FINAL PRODUCTION SERVER ---
 # Use a fresh, clean Node.js image for the backend runtime.
