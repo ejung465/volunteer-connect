@@ -5,7 +5,6 @@ WORKDIR /app
 # Copy files needed for the frontend build (package.json, src, vite config, ts config)
 COPY package*.json ./
 COPY vite.config.ts ./
-# CORRECT LINE
 COPY tsconfig.json ./
 COPY src ./src
 
@@ -38,4 +37,3 @@ EXPOSE 3001
 
 # The command to run when the container starts
 CMD ["node", "server/server.js"]
-
