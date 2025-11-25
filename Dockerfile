@@ -23,6 +23,9 @@ WORKDIR /app
 # Copy the static files (the "dist" folder) from Stage 1 into the new image.
 COPY --from=frontend-builder /app/dist ./dist
 
+# Add this line to create the necessary backend directory
+RUN mkdir server   <-- ADD THIS LINE
+
 # Install ONLY the necessary production dependencies for the Express backend
 # Copy only the files needed to install backend dependencies
 COPY package*.json ./
