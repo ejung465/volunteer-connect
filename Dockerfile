@@ -38,3 +38,4 @@ EXPOSE 3001
 
 # The command to run when the container starts
 CMD ["node", "server/server.js"]
+
