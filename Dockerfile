@@ -1,3 +1,4 @@
+# THIS IS A FORCED GIT CHANGE
 # --- STAGE 1: FRONTEND BUILDER ---
 FROM node:22-alpine as frontend-builder
 WORKDIR /app
