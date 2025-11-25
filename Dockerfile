@@ -5,7 +5,8 @@ WORKDIR /app
 # Copy files needed for the frontend build (package.json, src, vite config, ts config)
 COPY package*.json ./
 COPY vite.config.ts ./
-COPY tsconfig.json ./   <-- ADD THIS LINE
+# CORRECT LINE
+COPY tsconfig.json ./
 COPY src ./src
 
 # Install dependencies and build the frontend (output goes to /app/dist)
