@@ -17,7 +17,7 @@ RUN npm ci
 # This runs the 'build' script defined in your root package.json
 RUN npm run build 
 
-# ----------------------------------------------------------------------
+# ---------------------------------------------------------------------
 
 # --- STAGE 2: FINAL PRODUCTION SERVER ---
 # Use a fresh, clean Node.js image for the backend runtime.
