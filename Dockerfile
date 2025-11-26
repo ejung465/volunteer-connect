@@ -34,8 +34,9 @@ COPY package*.json ./
 COPY server/package*.json ./server/
 
 # Install root dependencies, then install server dependencies inside the 'server' folder
-RUN npm ci --omit=dev 
-RUN cd server && npm ci --omit=dev && cd ..
+
+# CORRECT (combines all dependency steps into one shell execution)
+RUN npm ci --omit=dev && cd server && npm ci --omit=dev && cd ..
 
 # Copy the rest of the Express backend source code
 COPY server ./server
