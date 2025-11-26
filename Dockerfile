@@ -1,9 +1,10 @@
-# THIS IS A FORCED GIT CHANGE
+# THIS IS THE CORRECT DOCKERFILE CONTENT FOR YOUR PROJECT STRUCTURE
+
 # --- STAGE 1: FRONTEND BUILDER ---
 FROM node:22-alpine as frontend-builder
 WORKDIR /app
 
-# Copy files needed for the frontend build (package.json, src, vite config, ts config)
+# Copy files needed for the frontend build (package.json, config, source)
 COPY package*.json ./
 COPY vite.config.ts ./
 COPY tsconfig.json ./
@@ -12,8 +13,10 @@ COPY src ./src
 
 # Install dependencies and build the frontend (output goes to /app/dist)
 RUN npm ci 
+# This runs the 'build' script defined in your root package.json
 RUN npm run build 
-# ... rest of the Dockerfile ...
+
+# ----------------------------------------------------------------------
 
 # --- STAGE 2: FINAL PRODUCTION SERVER ---
 # Use a fresh, clean Node.js image for the backend runtime.
@@ -21,16 +24,17 @@ FROM node:22-alpine
 WORKDIR /app
 
 # Copy the static files (the "dist" folder) from Stage 1 into the new image.
+# The output is expected in /app/dist
 COPY --from=frontend-builder /app/dist ./dist
 
-# Add this line to create the necessary backend directory
-RUN mkdir server   <-- ADD THIS LINE
-
 # Install ONLY the necessary production dependencies for the Express backend
-# Copy only the files needed to install backend dependencies
+# Copy files needed for root-level and server-level dependencies
 COPY package*.json ./
 COPY server/package*.json ./server/
-RUN npm ci --omit=dev && cd server && npm ci --omit=dev && cd ..
+
+# Install root dependencies, then install server dependencies inside the 'server' folder
+RUN npm ci --omit=dev 
+RUN cd server && npm ci --omit=dev && cd ..
 
 # Copy the rest of the Express backend source code
 COPY server ./server
