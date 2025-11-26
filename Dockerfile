@@ -21,7 +21,7 @@ RUN npm run build
 
 # --- STAGE 2: FINAL PRODUCTION SERVER ---
 # Use a fresh, clean Node.js image for the backend runtime.
-FROM node:22-alpine
+FROM node:22
 WORKDIR /app
 
 # Copy the static files (the "dist" folder) from Stage 1 into the new image.
