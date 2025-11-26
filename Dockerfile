@@ -9,6 +9,7 @@ COPY package*.json ./
 COPY vite.config.ts ./
 COPY tsconfig.json ./
 COPY tsconfig.node.json ./
+COPY index.html ./
 COPY src ./src
 
 # Install dependencies and build the frontend (output goes to /app/dist)
