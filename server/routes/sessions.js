@@ -6,7 +6,17 @@ const router = express.Router();
 // Get all sessions
 router.get('/', (req, res) => {
     try {
-        const sessions = db.all('SELECT * FROM sessions ORDER BY session_date DESC');
+        const sessions = db.all(`
+            SELECT 
+                s.id, 
+                s.session_date as sessionDate,
+                s.start_time as startTime,
+                s.end_time as endTime,
+                s.location,
+                (SELECT COUNT(*) FROM attendance a WHERE a.session_id = s.id) as attendanceCount
+            FROM sessions s
+            ORDER BY s.session_date DESC
+        `);
         res.json(sessions);
     } catch (error) {
         res.status(500).json({ error: error.message });

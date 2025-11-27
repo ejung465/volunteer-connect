@@ -7,7 +7,14 @@ const router = express.Router();
 router.get('/', (req, res) => {
     try {
         const students = db.all(`
-            SELECT s.*, u.email 
+            SELECT 
+                s.id,
+                s.first_name as firstName,
+                s.last_name as lastName,
+                s.grade_level as gradeLevel,
+                s.photo_url as photoUrl,
+                s.progress_summary as progressSummary,
+                u.email 
             FROM students s 
             JOIN users u ON s.user_id = u.id
         `);
@@ -21,7 +28,17 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
     try {
         const student = db.get(`
-            SELECT s.*, u.email 
+            SELECT 
+                s.id,
+                s.first_name as firstName,
+                s.last_name as lastName,
+                s.grade_level as gradeLevel,
+                s.photo_url as photoUrl,
+                s.progress_summary as progressSummary,
+                s.birthday,
+                s.bio,
+                s.google_drive_folder_id as googleDriveFolderId,
+                u.email 
             FROM students s 
             JOIN users u ON s.user_id = u.id 
             WHERE s.id = ?

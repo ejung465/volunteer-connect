@@ -7,7 +7,14 @@ const router = express.Router();
 router.get('/', (req, res) => {
     try {
         const volunteers = db.all(`
-            SELECT v.*, u.email 
+            SELECT 
+                v.id,
+                v.first_name as firstName,
+                v.last_name as lastName,
+                v.photo_url as photoUrl,
+                v.bio,
+                v.total_hours as totalHours,
+                u.email 
             FROM volunteers v 
             JOIN users u ON v.user_id = u.id
         `);
@@ -21,7 +28,14 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
     try {
         const volunteer = db.get(`
-            SELECT v.*, u.email 
+            SELECT 
+                v.id,
+                v.first_name as firstName,
+                v.last_name as lastName,
+                v.photo_url as photoUrl,
+                v.bio,
+                v.total_hours as totalHours,
+                u.email 
             FROM volunteers v 
             JOIN users u ON v.user_id = u.id 
             WHERE v.id = ?
