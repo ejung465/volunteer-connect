@@ -29,7 +29,7 @@ jobs:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
           
       # Set up AR_IMAGE_PATH as an output for the job
-      # FIX: Calculate AR_IMAGE_PATH here instead of the global env block
+      # Calculate AR_IMAGE_PATH here
       - name: 'Set Image Path'
         id: image_path
         run: |
@@ -90,7 +90,12 @@ jobs:
         run: npm ci
 
       - name: Build Frontend (Vite)
-        run: npm run build
+        # 🚀 FIX: Inject the Cloud Run URL using the VITE_API_URL variable
+        run: |
+          BACKEND_URL="https://r-tutor-backend-161659910838.us-central1.run.app"
+          
+          # VITE_API_URL must exactly match the variable used in your JS/TS code
+          VITE_API_URL=$BACKEND_URL npm run build
         
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
@@ -99,3 +104,4 @@ jobs:
           firebaseServiceAccount: '${{ secrets.GCP_SA_KEY }}' # Uses the same key
           projectId: ${{ env.PROJECT_ID }}
           channelId: live
+          entryPoint: . # Root directory for Firebase Hosting
