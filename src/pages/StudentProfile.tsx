@@ -64,7 +64,7 @@ const StudentProfile: React.FC = () => {
 
   const handleSaveSummary = async () => {
     try {
-      await api.put(`/api/students/${id}/progress`, { progressSummary: summaryText });
+      await api.put(`/api/students/${id}/progress-summary`, { progressSummary: summaryText });
       setStudent(prev => prev ? { ...prev, progressSummary: summaryText } : null);
       setIsEditingSummary(false);
     } catch (error) {
