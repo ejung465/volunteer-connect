@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '../utils/api';
-import { getTenantIdFromUrl } from '../utils/tenantUtils';
+
 
 export interface User {
     id: number;
@@ -51,8 +51,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const login = async (email: string, password: string) => {
         try {
-            const tenantId = getTenantIdFromUrl();
-            const data = await api.post('/api/auth/login', { email, password, tenantId });
+            const data = await api.post('/api/auth/login', { email, password });
             setUser(data.user);
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('token', data.token);

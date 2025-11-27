@@ -1,129 +1,96 @@
 import express from 'express';
-import { requireRole } from '../middleware/auth.js';
+import db from '../database.js';
 
 const router = express.Router();
 
 // Get all volunteers
-router.get('/', async (req, res) => {
+router.get('/', (req, res) => {
     try {
-        const { all } = req.tenantDb;
-
-        const volunteers = all(`
-      SELECT 
-        v.id,
-        v.first_name as firstName,
-        v.last_name as lastName,
-        v.total_hours as totalHours,
-        u.email 
-      FROM volunteers v
-      JOIN users u ON v.user_id = u.id
-      ORDER BY v.last_name, v.first_name
-    `);
-
+        const volunteers = db.prepare(`
+            SELECT v.*, u.email 
+            FROM volunteers v 
+            JOIN users u ON v.user_id = u.id
+        `).all();
         res.json(volunteers);
     } catch (error) {
-        console.error('Error fetching volunteers:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: error.message });
     }
 });
 
-// Get matched students for current volunteer
-router.get('/matched-students', requireRole('volunteer'), async (req, res) => {
+// Get volunteer by ID
+router.get('/:id', (req, res) => {
     try {
-        const { get, all } = req.tenantDb;
-
-        // Get volunteer ID from user ID
-        const volunteer = get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
+        const volunteer = db.prepare(`
+            SELECT v.*, u.email 
+            FROM volunteers v 
+            JOIN users u ON v.user_id = u.id 
+            WHERE v.id = ?
+        `).get(req.params.id);
 
         if (!volunteer) {
-            return res.status(404).json({ error: 'Volunteer profile not found' });
+            return res.status(404).json({ error: 'Volunteer not found' });
         }
-
-        // Get students this volunteer has worked with most
-        const students = all(`
-      SELECT 
-        s.id,
-        s.first_name as firstName,
-        s.last_name as lastName,
-        s.photo_url as photoUrl,
-        s.grade_level as gradeLevel,
-        s.progress_summary as progressSummary,
-        COUNT(a.id) as session_count
-      FROM students s
-      JOIN attendance a ON s.id = a.student_id
-      WHERE a.volunteer_id = ?
-      GROUP BY s.id
-      ORDER BY session_count DESC
-      LIMIT 5
-    `, [volunteer.id]);
-
-        res.json(students);
+        res.json(volunteer);
     } catch (error) {
-        console.error('Error fetching matched students:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Create new volunteer
+router.post('/', (req, res) => {
+    const { first_name, last_name, email } = req.body;
+
+    try {
+        const createUser = db.transaction(() => {
+            const info = db.prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
+                .run(email, 'temp_hash', 'volunteer');
+
+            db.prepare('INSERT INTO volunteers (user_id, first_name, last_name) VALUES (?, ?, ?)')
+                .run(info.lastInsertRowid, first_name, last_name);
+
+            return info.lastInsertRowid;
+        });
+
+        const userId = createUser();
+        res.status(201).json({ id: userId, message: 'Volunteer created successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
 // Get volunteer stats
-router.get('/stats', requireRole('volunteer'), async (req, res) => {
+router.get('/:id/stats', (req, res) => {
     try {
-        const { get, all } = req.tenantDb;
-
-        const volunteer = get('SELECT id, total_hours FROM volunteers WHERE user_id = ?', [req.user.id]);
-
-        if (!volunteer) {
-            return res.status(404).json({ error: 'Volunteer profile not found' });
-        }
-
-        // Get session data for pie chart
-        const sessionData = all(`
-      SELECT 
-        s.first_name || ' ' || s.last_name as studentName,
-        SUM(a.hours_logged) as hours
-      FROM attendance a
-      JOIN students s ON a.student_id = s.id
-      WHERE a.volunteer_id = ?
-      GROUP BY a.student_id
-      ORDER BY hours DESC
-    `, [volunteer.id]);
-
-        res.json({
-            totalHours: volunteer.total_hours,
-            sessionData,
-        });
+        const stats = db.prepare(`
+            SELECT 
+                COUNT(DISTINCT session_id) as total_sessions,
+                SUM(hours_logged) as total_hours
+            FROM attendance
+            WHERE volunteer_id = ?
+        `).get(req.params.id);
+        res.json(stats);
     } catch (error) {
-        console.error('Error fetching volunteer stats:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: error.message });
     }
 });
 
-// Get upcoming sessions for volunteer
-router.get('/upcoming-sessions', requireRole('volunteer'), async (req, res) => {
+// Update volunteer profile
+router.put('/:id', (req, res) => {
+    const { firstName, lastName, bio, phone, photoUrl } = req.body;
     try {
-        const { get, all } = req.tenantDb;
-
-        const volunteer = get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
-
-        if (!volunteer) {
-            return res.status(404).json({ error: 'Volunteer profile not found' });
-        }
-
-        const sessions = all(`
-      SELECT 
-        s.id,
-        s.session_date as sessionDate,
-        COALESCE(va.is_available, 0) as isAvailable
-      FROM sessions s
-      LEFT JOIN volunteer_availability va ON s.id = va.session_id AND va.volunteer_id = ?
-      WHERE s.session_date >= date('now')
-      ORDER BY s.session_date ASC
-      LIMIT 10
-    `, [volunteer.id]);
-
-        res.json(sessions);
+        db.prepare(`
+            UPDATE volunteers 
+            SET first_name = COALESCE(?, first_name),
+                last_name = COALESCE(?, last_name),
+                bio = COALESCE(?, bio),
+                phone = COALESCE(?, phone),
+                photo_url = COALESCE(?, photo_url),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).run(firstName, lastName, bio, phone, photoUrl, req.params.id);
+        res.json({ message: 'Volunteer profile updated successfully' });
     } catch (error) {
-        console.error('Error fetching upcoming sessions:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: error.message });
     }
 });
 

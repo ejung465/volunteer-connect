@@ -28,18 +28,13 @@ app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
     next();
 });
-
 // Routes
 app.use('/api/auth', authRoutes);
 
 // Protected Routes Middleware
 import { authenticateToken } from './middleware/auth.js';
-import { tenantMiddleware } from './tenantMiddleware.js';
 
-// Apply Auth & Tenant middleware to all API routes EXCEPT auth
-// Note: Since /api/auth is defined above, it won't be affected by these middlewares
 app.use('/api', authenticateToken);
-app.use('/api', tenantMiddleware);
 
 app.use('/api/students', studentRoutes);
 app.use('/api/volunteers', volunteerRoutes);

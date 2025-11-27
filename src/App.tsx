@@ -31,63 +31,57 @@ const AppRoutes: React.FC = () => {
         <>
             {user && <Navbar />}
             <Routes>
-                {/* Tenant-based routing - all routes nested under /:tenantId */}
-                <Route path="/:tenantId">
-                    <Route path="login" element={user ? <Navigate to={`/${window.location.pathname.split('/')[1]}${getDefaultRoute()}`} replace /> : <Login />} />
+                <Route path="/login" element={user ? <Navigate to={getDefaultRoute()} replace /> : <Login />} />
 
-                    {/* Admin Routes */}
-                    <Route
-                        path="admin"
-                        element={
-                            <ProtectedRoute allowedRoles={['admin']}>
-                                <AdminDashboard />
-                            </ProtectedRoute>
-                        }
-                    />
+                {/* Admin Routes */}
+                <Route
+                    path="/admin"
+                    element={
+                        <ProtectedRoute allowedRoles={['admin']}>
+                            <AdminDashboard />
+                        </ProtectedRoute>
+                    }
+                />
 
-                    {/* Volunteer Routes */}
-                    <Route
-                        path="volunteer"
-                        element={
-                            <ProtectedRoute allowedRoles={['volunteer']}>
-                                <VolunteerDashboard />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="volunteer/profile"
-                        element={
-                            <ProtectedRoute allowedRoles={['volunteer']}>
-                                <VolunteerProfile />
-                            </ProtectedRoute>
-                        }
-                    />
+                {/* Volunteer Routes */}
+                <Route
+                    path="/volunteer"
+                    element={
+                        <ProtectedRoute allowedRoles={['volunteer']}>
+                            <VolunteerDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/volunteer/profile"
+                    element={
+                        <ProtectedRoute allowedRoles={['volunteer']}>
+                            <VolunteerProfile />
+                        </ProtectedRoute>
+                    }
+                />
 
-                    {/* Student Routes */}
-                    <Route
-                        path="student"
-                        element={
-                            <ProtectedRoute allowedRoles={['student']}>
-                                <StudentDashboard />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="student/:id"
-                        element={
-                            <ProtectedRoute allowedRoles={['admin', 'volunteer', 'student']}>
-                                <StudentProfile />
-                            </ProtectedRoute>
-                        }
-                    />
+                {/* Student Routes */}
+                <Route
+                    path="/student"
+                    element={
+                        <ProtectedRoute allowedRoles={['student']}>
+                            <StudentDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/student/:id"
+                    element={
+                        <ProtectedRoute allowedRoles={['admin', 'volunteer', 'student']}>
+                            <StudentProfile />
+                        </ProtectedRoute>
+                    }
+                />
 
-                    {/* Default route within tenant */}
-                    <Route index element={<Navigate to="login" replace />} />
-                </Route>
-
-                {/* Root redirect to tenant-a */}
-                <Route path="/" element={<Navigate to="/tenant-a/login" replace />} />
-                <Route path="*" element={<Navigate to="/tenant-a/login" replace />} />
+                {/* Default Route */}
+                <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
+                <Route path="*" element={<Navigate to={getDefaultRoute()} replace />} />
             </Routes>
         </>
     );

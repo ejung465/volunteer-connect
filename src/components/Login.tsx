@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getTenantIdFromUrl } from '../utils/tenantUtils';
+
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -10,7 +10,6 @@ const Login: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
-    const tenantId = getTenantIdFromUrl();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,18 +53,6 @@ const Login: React.FC = () => {
                         Volunteer Connect
                     </h1>
                     <p className="text-muted">Sign in to your account</p>
-                    <div style={{
-                        display: 'inline-block',
-                        marginTop: 'var(--spacing-sm)',
-                        padding: 'var(--spacing-xs) var(--spacing-md)',
-                        backgroundColor: 'var(--color-primary-light)',
-                        color: 'var(--color-primary)',
-                        borderRadius: 'var(--radius-full)',
-                        fontSize: 'var(--font-size-sm)',
-                        fontWeight: '600'
-                    }}>
-                        Tenant: {tenantId.toUpperCase()}
-                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit}>

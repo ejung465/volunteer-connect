@@ -1,28 +1,26 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getTenantIdFromUrl } from '../utils/tenantUtils';
 
 const Navbar: React.FC = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const tenantId = getTenantIdFromUrl();
 
     const handleLogout = () => {
         logout();
-        navigate(`/${tenantId}/login`);
+        navigate('/login');
     };
 
     const getDashboardLink = () => {
         switch (user?.role) {
             case 'admin':
-                return `/${tenantId}/admin`;
+                return '/admin';
             case 'volunteer':
-                return `/${tenantId}/volunteer`;
+                return '/volunteer';
             case 'student':
-                return `/${tenantId}/student`;
+                return '/student';
             default:
-                return `/${tenantId}`;
+                return '/';
         }
     };
 
@@ -56,7 +54,7 @@ const Navbar: React.FC = () => {
 
                         {user?.role === 'volunteer' && (
                             <li>
-                                <Link to={`/${tenantId}/volunteer/profile`} className="navbar-link">
+                                <Link to="/volunteer/profile" className="navbar-link">
                                     My Profile
                                 </Link>
                             </li>
