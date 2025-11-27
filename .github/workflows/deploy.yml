@@ -38,8 +38,12 @@ jobs:
 
       # Build and push the container image to Artifact Registry
       - name: 'Build and Push Docker Image'
-        # All environment variables in this 'run' block MUST use $VARIABLE_NAME
+        # FIX: Explicitly map the necessary variables to the step's environment
+        env:
+          REGION: ${{ env.REGION }}
+          AR_IMAGE_PATH: ${{ env.AR_IMAGE_PATH }}
         run: |
+          # Now, $REGION and $AR_IMAGE_PATH are correctly available in the shell
           gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
           
           # Build and tag the image with the correct Artifact Registry path and Git SHA
