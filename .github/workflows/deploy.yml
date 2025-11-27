@@ -11,8 +11,6 @@ env:
   PROJECT_ID: volunteer-connection-479402  # <-- YOUR PROJECT ID
   CLOUD_RUN_SERVICE: r-tutor-backend       # <-- YOUR CLOUD RUN SERVICE NAME
   REGION: us-central1                      # <-- YOUR CLOUD RUN REGION
-  # Corrected full image path for Artifact Registry
-  AR_IMAGE_PATH: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.CLOUD_RUN_SERVICE }}/${{ env.CLOUD_RUN_SERVICE }}
 
 jobs:
   # ----------------------------------------------------
@@ -30,6 +28,13 @@ jobs:
         with:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
           
+      # Set up AR_IMAGE_PATH as an output for the job
+      # FIX: Calculate AR_IMAGE_PATH here instead of the global env block
+      - name: 'Set Image Path'
+        id: image_path
+        run: |
+          echo "AR_IMAGE_PATH=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.CLOUD_RUN_SERVICE }}/${{ env.CLOUD_RUN_SERVICE }}" >> $GITHUB_OUTPUT
+
       # Set up gcloud CLI and configure Docker for Artifact Registry
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
@@ -38,12 +43,12 @@ jobs:
 
       # Build and push the container image to Artifact Registry
       - name: 'Build and Push Docker Image'
-        # FIX: Explicitly map the necessary variables to the step's environment
+        # Explicitly map the necessary variables to the step's environment
         env:
           REGION: ${{ env.REGION }}
-          AR_IMAGE_PATH: ${{ env.AR_IMAGE_PATH }}
         run: |
-          # Now, $REGION and $AR_IMAGE_PATH are correctly available in the shell
+          AR_IMAGE_PATH=${{ steps.image_path.outputs.AR_IMAGE_PATH }}
+          
           gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
           
           # Build and tag the image with the correct Artifact Registry path and Git SHA
@@ -60,8 +65,8 @@ jobs:
         with:
           service: ${{ env.CLOUD_RUN_SERVICE }}
           region: ${{ env.REGION }}
-          # This step uses the GitHub Actions 'with:' context, so it uses ${{ env.VAR }} syntax
-          image: ${{ env.AR_IMAGE_PATH }}:${{ github.sha }} 
+          # Use the job step output for the image path
+          image: ${{ steps.image_path.outputs.AR_IMAGE_PATH }}:${{ github.sha }} 
           # Set the environment variable to point the backend to the live frontend URL
           env_vars: |
             PUBLIC_URL=${{ secrets.FRONTEND_URL }}
