@@ -1,13 +1,12 @@
 import express from 'express';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get all students (admin/volunteer)
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { all } = dbModule.default;
+        const { all } = req.tenantDb;
 
         const students = all(`
       SELECT 
@@ -31,10 +30,9 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get current student's data (student role)
-router.get('/me', authenticateToken, requireRole('student'), async (req, res) => {
+router.get('/me', requireRole('student'), async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { get } = dbModule.default;
+        const { get } = req.tenantDb;
 
         const student = get(`
             SELECT 
@@ -63,10 +61,9 @@ router.get('/me', authenticateToken, requireRole('student'), async (req, res) =>
 });
 
 // Get student by ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { get } = dbModule.default;
+        const { get } = req.tenantDb;
 
         const student = get(`
       SELECT 
@@ -97,10 +94,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Get student progress
-router.get('/:id/progress', authenticateToken, async (req, res) => {
+router.get('/:id/progress', async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { all } = dbModule.default;
+        const { all } = req.tenantDb;
 
         const progress = all(`
       SELECT * FROM student_progress 
@@ -116,10 +112,9 @@ router.get('/:id/progress', authenticateToken, async (req, res) => {
 });
 
 // Get student session history
-router.get('/:id/sessions', authenticateToken, async (req, res) => {
+router.get('/:id/sessions', async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { all } = dbModule.default;
+        const { all } = req.tenantDb;
 
         const sessions = all(`
       SELECT 
@@ -143,12 +138,11 @@ router.get('/:id/sessions', authenticateToken, async (req, res) => {
 });
 
 // Update progress summary (volunteer/admin only)
-router.put('/:id/progress-summary', authenticateToken, requireRole('volunteer', 'admin'), async (req, res) => {
+router.put('/:id/progress-summary', requireRole('volunteer', 'admin'), async (req, res) => {
     const { progressSummary } = req.body;
 
     try {
-        const dbModule = await import('../database.js');
-        const { run } = dbModule.default;
+        const { run } = req.tenantDb;
 
         run(`
       UPDATE students 
@@ -164,12 +158,11 @@ router.put('/:id/progress-summary', authenticateToken, requireRole('volunteer', 
 });
 
 // Update student profile
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', async (req, res) => {
     const { firstName, lastName, gradeLevel, birthday, bio, photoUrl, googleDriveFolderId } = req.body;
 
     try {
-        const dbModule = await import('../database.js');
-        const { run } = dbModule.default;
+        const { run } = req.tenantDb;
 
         run(`
       UPDATE students 

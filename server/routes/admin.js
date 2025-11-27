@@ -1,12 +1,12 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { requireRole } from '../middleware/auth.js';
 import { syncUserReport } from '../utils/googleSheets.js';
 
 const router = express.Router();
 
 // Create new user (admin only)
-router.post('/users', authenticateToken, requireRole('admin'), async (req, res) => {
+router.post('/users', requireRole('admin'), async (req, res) => {
     const { firstName, lastName, email, password, role, gradeLevel, bio } = req.body;
 
     if (!email || !password || !role || !firstName || !lastName) {
@@ -18,8 +18,7 @@ router.post('/users', authenticateToken, requireRole('admin'), async (req, res) 
     }
 
     try {
-        const dbModule = await import('../database.js');
-        const { run, get } = dbModule.default;
+        const { run, get } = req.tenantDb;
 
         // Check if user exists
         const existingUser = get('SELECT id FROM users WHERE email = ?', [email]);

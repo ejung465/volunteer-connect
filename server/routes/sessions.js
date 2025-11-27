@@ -1,13 +1,12 @@
 import express from 'express';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get all sessions
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { all } = dbModule.default;
+        const { all } = req.tenantDb;
 
         const sessions = all(`
       SELECT 
@@ -28,7 +27,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Create new session (admin only)
-router.post('/', authenticateToken, requireRole('admin'), async (req, res) => {
+router.post('/', requireRole('admin'), async (req, res) => {
     const { sessionDate } = req.body;
 
     if (!sessionDate) {
@@ -36,8 +35,7 @@ router.post('/', authenticateToken, requireRole('admin'), async (req, res) => {
     }
 
     try {
-        const dbModule = await import('../database.js');
-        const { run, get } = dbModule.default;
+        const { run, get } = req.tenantDb;
 
         run(`INSERT INTO sessions (session_date, created_by_admin_id) VALUES (?, ?)`,
             [sessionDate, req.user.id]);
@@ -55,10 +53,9 @@ router.post('/', authenticateToken, requireRole('admin'), async (req, res) => {
 });
 
 // Get session details
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { get, all } = dbModule.default;
+        const { get, all } = req.tenantDb;
 
         const session = get('SELECT * FROM sessions WHERE id = ?', [req.params.id]);
 
@@ -85,7 +82,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Add attendance record (admin only)
-router.post('/:id/attendance', authenticateToken, requireRole('admin'), async (req, res) => {
+router.post('/:id/attendance', requireRole('admin'), async (req, res) => {
     const { volunteerId, studentId, hoursLogged, notes } = req.body;
 
     if (!volunteerId || !studentId) {
@@ -93,8 +90,7 @@ router.post('/:id/attendance', authenticateToken, requireRole('admin'), async (r
     }
 
     try {
-        const dbModule = await import('../database.js');
-        const { run } = dbModule.default;
+        const { run } = req.tenantDb;
 
         run(`INSERT INTO attendance (session_id, volunteer_id, student_id, hours_logged, notes) VALUES (?, ?, ?, ?, ?)`,
             [req.params.id, volunteerId, studentId, hoursLogged || 2.0, notes]);

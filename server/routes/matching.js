@@ -1,11 +1,11 @@
 import express from 'express';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { requireRole } from '../middleware/auth.js';
 import { matchStudentsToVolunteers } from '../utils/matching-algorithm.js';
 
 const router = express.Router();
 
 // Generate matches for a specific session date
-router.post('/generate', authenticateToken, requireRole('admin'), async (req, res) => {
+router.post('/generate', requireRole('admin'), async (req, res) => {
     const { sessionDate } = req.body;
 
     if (!sessionDate) {
@@ -13,8 +13,7 @@ router.post('/generate', authenticateToken, requireRole('admin'), async (req, re
     }
 
     try {
-        const dbModule = await import('../database.js');
-        const { all } = dbModule.default;
+        const { all } = req.tenantDb;
 
         // 1. Get all active students
         const students = all('SELECT * FROM students');

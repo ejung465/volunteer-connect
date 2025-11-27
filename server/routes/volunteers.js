@@ -1,13 +1,12 @@
 import express from 'express';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get all volunteers
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { all } = dbModule.default;
+        const { all } = req.tenantDb;
 
         const volunteers = all(`
       SELECT 
@@ -29,10 +28,9 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get matched students for current volunteer
-router.get('/matched-students', authenticateToken, requireRole('volunteer'), async (req, res) => {
+router.get('/matched-students', requireRole('volunteer'), async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { get, all } = dbModule.default;
+        const { get, all } = req.tenantDb;
 
         // Get volunteer ID from user ID
         const volunteer = get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
@@ -67,10 +65,9 @@ router.get('/matched-students', authenticateToken, requireRole('volunteer'), asy
 });
 
 // Get volunteer stats
-router.get('/stats', authenticateToken, requireRole('volunteer'), async (req, res) => {
+router.get('/stats', requireRole('volunteer'), async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { get, all } = dbModule.default;
+        const { get, all } = req.tenantDb;
 
         const volunteer = get('SELECT id, total_hours FROM volunteers WHERE user_id = ?', [req.user.id]);
 
@@ -101,10 +98,9 @@ router.get('/stats', authenticateToken, requireRole('volunteer'), async (req, re
 });
 
 // Get upcoming sessions for volunteer
-router.get('/upcoming-sessions', authenticateToken, requireRole('volunteer'), async (req, res) => {
+router.get('/upcoming-sessions', requireRole('volunteer'), async (req, res) => {
     try {
-        const dbModule = await import('../database.js');
-        const { get, all } = dbModule.default;
+        const { get, all } = req.tenantDb;
 
         const volunteer = get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
 

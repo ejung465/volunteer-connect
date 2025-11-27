@@ -1,56 +1,121 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import initSqlJs from 'sql.js';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { getTenantConnectionDetails } from '../tenantRegistry.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
+// Helper to load DB for a tenant
+const loadTenantDb = async (tenantId) => {
+    try {
+        const details = await getTenantConnectionDetails(tenantId);
+        const SQL = await initSqlJs();
+
+        let db;
+        if (existsSync(details.dbPath)) {
+            const buffer = readFileSync(details.dbPath);
+            db = new SQL.Database(buffer);
+        } else {
+            // If DB doesn't exist, create new for registration, or return null for login?
+            // For simplicity, we'll create a new one if it doesn't exist (e.g. first run for a tenant)
+            db = new SQL.Database();
+        }
+
+        const saveDatabase = () => {
+            const data = db.export();
+            writeFileSync(details.dbPath, data);
+        };
+
+        const get = (sql, params = []) => {
+            try {
+                const stmt = db.prepare(sql);
+                stmt.bind(params);
+                const result = stmt.step() ? stmt.getAsObject() : null;
+                stmt.free();
+                return result;
+            } catch (e) {
+                console.error("SQL Get Error:", e);
+                return null;
+            }
+        };
+
+        const all = (sql, params = []) => {
+            try {
+                const stmt = db.prepare(sql);
+                stmt.bind(params);
+                const results = [];
+                while (stmt.step()) {
+                    results.push(stmt.getAsObject());
+                }
+                stmt.free();
+                return results;
+            } catch (e) {
+                console.error("SQL All Error:", e);
+                return [];
+            }
+        };
+
+        const run = (sql, params = []) => {
+            try {
+                const stmt = db.prepare(sql);
+                stmt.bind(params);
+                stmt.step();
+                stmt.free();
+                saveDatabase();
+            } catch (e) {
+                console.error("SQL Run Error:", e);
+                throw e;
+            }
+        };
+
+        return { db, get, all, run };
+    } catch (error) {
+        console.error(`Failed to load DB for tenant ${tenantId}:`, error);
+        throw error;
+    }
+};
+
 // Login
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    // Default to 'tenant-a' for backward compatibility/demo
+    const { email, password, tenantId = 'tenant-a' } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
     }
 
     try {
-        const dbModule = await import('../database.js');
-        const { get, all } = dbModule.default;
+        const { get, all } = await loadTenantDb(tenantId);
 
-        console.log(`[LOGIN] Attempting login for: ${email}`);
-        
-        const user = get('SELECT * FROM users WHERE email = ?', [email]);
-        
-        console.log(`[LOGIN] User found:`, user ? 'Yes' : 'No');
-        if (user) {
-            console.log(`[LOGIN] User role: ${user.role}, User ID: ${user.id}`);
+        console.log(`[LOGIN] Attempting login for: ${email} on tenant: ${tenantId}`);
+
+        // Check if users table exists (in case of fresh DB)
+        try {
+            const check = get("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
+            if (!check) {
+                return res.status(500).json({ error: 'Database not initialized for this tenant' });
+            }
+        } catch (e) {
+            return res.status(500).json({ error: 'Database error' });
         }
+
+        const user = get('SELECT * FROM users WHERE email = ?', [email]);
 
         if (!user) {
-            console.log(`[LOGIN] No user found with email: ${email}`);
-            // Debug: List all users
-            const allUsers = all('SELECT email, role FROM users');
-            console.log(`[LOGIN] All users in database:`, allUsers);
-            return res.status(401).json({ error: 'Invalid email or password. Please try again.' });
+            return res.status(401).json({ error: 'Invalid email or password.' });
         }
 
-        console.log(`[LOGIN] Checking password...`);
-        console.log(`[LOGIN] Password hash exists: ${!!user.password_hash}`);
-        
         if (!user.password_hash) {
-            console.log(`[LOGIN] ERROR: User has no password hash!`);
-            return res.status(401).json({ error: 'Invalid email or password. Please try again.' });
+            return res.status(401).json({ error: 'Invalid email or password.' });
         }
-        
+
         const isValidPassword = bcrypt.compareSync(password, user.password_hash);
-        console.log(`[LOGIN] Password valid: ${isValidPassword}`);
 
         if (!isValidPassword) {
-            console.log(`[LOGIN] Invalid password for: ${email}`);
-            console.log(`[LOGIN] Attempted password: ${password}`);
-            // For debugging - show first few chars of hash
-            console.log(`[LOGIN] Stored hash starts with: ${user.password_hash.substring(0, 20)}...`);
-            return res.status(401).json({ error: 'Invalid email or password. Please try again.' });
+            return res.status(401).json({ error: 'Invalid email or password.' });
         }
 
         // Get additional user info based on role
@@ -66,7 +131,7 @@ router.post('/login', async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role },
+            { id: user.id, email: user.email, role: user.role, tenantId }, // Include tenantId
             JWT_SECRET,
             { expiresIn: '7d' }
         );
@@ -79,6 +144,7 @@ router.post('/login', async (req, res) => {
                 role: user.role,
                 firstName,
                 lastName,
+                tenantId
             },
         });
     } catch (error) {
@@ -89,7 +155,7 @@ router.post('/login', async (req, res) => {
 
 // Register (for creating new accounts)
 router.post('/register', async (req, res) => {
-    const { email, password, role, firstName, lastName } = req.body;
+    const { email, password, role, firstName, lastName, tenantId = 'tenant-a' } = req.body;
 
     if (!email || !password || !role) {
         return res.status(400).json({ error: 'Email, password, and role are required' });
@@ -100,8 +166,18 @@ router.post('/register', async (req, res) => {
     }
 
     try {
-        const dbModule = await import('../database.js');
-        const { get, run } = dbModule.default;
+        const { get, run, db } = await loadTenantDb(tenantId);
+
+        // Ensure tables exist
+        const tableCheck = get("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
+        if (!tableCheck) {
+            console.log(`[REGISTER] Initializing database for tenant: ${tenantId}`);
+            initializeDatabase(db);
+
+            // Save the initialized database
+            const details = await getTenantConnectionDetails(tenantId);
+            writeFileSync(details.dbPath, db.export());
+        }
 
         const existingUser = get('SELECT id FROM users WHERE email = ?', [email]);
 
