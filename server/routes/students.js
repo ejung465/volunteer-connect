@@ -6,11 +6,11 @@ const router = express.Router();
 // Get all students
 router.get('/', (req, res) => {
     try {
-        const students = db.prepare(`
+        const students = db.all(`
             SELECT s.*, u.email 
             FROM students s 
             JOIN users u ON s.user_id = u.id
-        `).all();
+        `);
         res.json(students);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -20,12 +20,12 @@ router.get('/', (req, res) => {
 // Get student by ID
 router.get('/:id', (req, res) => {
     try {
-        const student = db.prepare(`
+        const student = db.get(`
             SELECT s.*, u.email 
             FROM students s 
             JOIN users u ON s.user_id = u.id 
             WHERE s.id = ?
-        `).get(req.params.id);
+        `, [req.params.id]);
 
         if (!student) {
             return res.status(404).json({ error: 'Student not found' });
@@ -41,19 +41,13 @@ router.post('/', (req, res) => {
     const { first_name, last_name, grade_level, email } = req.body;
 
     try {
-        // Transaction to create user and student profile
-        const createUser = db.transaction(() => {
-            const info = db.prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
-                .run(email, 'temp_hash', 'student');
+        db.run('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)', [email, 'temp_hash', 'student']);
+        const user = db.get('SELECT last_insert_rowid() as id');
 
-            db.prepare('INSERT INTO students (user_id, first_name, last_name, grade_level) VALUES (?, ?, ?, ?)')
-                .run(info.lastInsertRowid, first_name, last_name, grade_level);
+        db.run('INSERT INTO students (user_id, first_name, last_name, grade_level) VALUES (?, ?, ?, ?)',
+            [user.id, first_name, last_name, grade_level]);
 
-            return info.lastInsertRowid;
-        });
-
-        const userId = createUser();
-        res.status(201).json({ id: userId, message: 'Student created successfully' });
+        res.status(201).json({ id: user.id, message: 'Student created successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -62,11 +56,11 @@ router.post('/', (req, res) => {
 // Get student progress
 router.get('/:id/progress', (req, res) => {
     try {
-        const progress = db.prepare(`
+        const progress = db.all(`
             SELECT * FROM student_progress 
             WHERE student_id = ?
             ORDER BY subject, updated_at DESC
-        `).all(req.params.id);
+        `, [req.params.id]);
         res.json(progress);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -76,7 +70,7 @@ router.get('/:id/progress', (req, res) => {
 // Get student session history
 router.get('/:id/sessions', (req, res) => {
     try {
-        const sessions = db.prepare(`
+        const sessions = db.all(`
             SELECT 
                 a.id,
                 s.session_date as sessionDate,
@@ -88,7 +82,7 @@ router.get('/:id/sessions', (req, res) => {
             JOIN volunteers v ON a.volunteer_id = v.id
             WHERE a.student_id = ?
             ORDER BY s.session_date DESC
-        `).all(req.params.id);
+        `, [req.params.id]);
         res.json(sessions);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -99,11 +93,11 @@ router.get('/:id/sessions', (req, res) => {
 router.put('/:id/progress-summary', (req, res) => {
     const { progressSummary } = req.body;
     try {
-        db.prepare(`
+        db.run(`
             UPDATE students 
             SET progress_summary = ?, updated_at = CURRENT_TIMESTAMP 
             WHERE id = ?
-        `).run(progressSummary, req.params.id);
+        `, [progressSummary, req.params.id]);
         res.json({ message: 'Progress summary updated successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -114,7 +108,7 @@ router.put('/:id/progress-summary', (req, res) => {
 router.put('/:id', (req, res) => {
     const { firstName, lastName, gradeLevel, birthday, bio, photoUrl, googleDriveFolderId } = req.body;
     try {
-        db.prepare(`
+        db.run(`
             UPDATE students 
             SET first_name = COALESCE(?, first_name),
                 last_name = COALESCE(?, last_name),
@@ -125,7 +119,7 @@ router.put('/:id', (req, res) => {
                 google_drive_folder_id = COALESCE(?, google_drive_folder_id),
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).run(firstName, lastName, gradeLevel, birthday, bio, photoUrl, googleDriveFolderId, req.params.id);
+        `, [firstName, lastName, gradeLevel, birthday, bio, photoUrl, googleDriveFolderId, req.params.id]);
         res.json({ message: 'Student profile updated successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });

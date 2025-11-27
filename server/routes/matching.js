@@ -6,12 +6,12 @@ const router = express.Router();
 // Get matches for a student
 router.get('/student/:id', (req, res) => {
     try {
-        const matches = db.prepare(`
+        const matches = db.all(`
             SELECT m.*, v.first_name, v.last_name, v.bio
             FROM matches m
             JOIN volunteers v ON m.volunteer_id = v.id
             WHERE m.student_id = ? AND m.status = 'active'
-        `).all(req.params.id);
+        `, [req.params.id]);
         res.json(matches);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -22,11 +22,12 @@ router.get('/student/:id', (req, res) => {
 router.post('/', (req, res) => {
     const { student_id, volunteer_id } = req.body;
     try {
-        const info = db.prepare(`
+        db.run(`
             INSERT INTO matches (student_id, volunteer_id, status)
             VALUES (?, ?, 'active')
-        `).run(student_id, volunteer_id);
-        res.status(201).json({ id: info.lastInsertRowid, message: 'Match created successfully' });
+        `, [student_id, volunteer_id]);
+        const info = db.get('SELECT last_insert_rowid() as id');
+        res.status(201).json({ id: info.id, message: 'Match created successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -35,8 +36,7 @@ router.post('/', (req, res) => {
 // End match
 router.put('/:id/end', (req, res) => {
     try {
-        db.prepare("UPDATE matches SET status = 'ended', end_date = CURRENT_DATE WHERE id = ?")
-            .run(req.params.id);
+        db.run("UPDATE matches SET status = 'ended', end_date = CURRENT_DATE WHERE id = ?", [req.params.id]);
         res.json({ message: 'Match ended successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });

@@ -7,10 +7,10 @@ const router = express.Router();
 router.get('/stats', (req, res) => {
     try {
         const stats = {
-            students: db.prepare('SELECT COUNT(*) as count FROM students').get().count,
-            volunteers: db.prepare('SELECT COUNT(*) as count FROM volunteers').get().count,
-            sessions: db.prepare('SELECT COUNT(*) as count FROM sessions').get().count,
-            hours: db.prepare('SELECT COALESCE(SUM(hours_logged), 0) as count FROM attendance').get().count
+            students: db.get('SELECT COUNT(*) as count FROM students').count,
+            volunteers: db.get('SELECT COUNT(*) as count FROM volunteers').count,
+            sessions: db.get('SELECT COUNT(*) as count FROM sessions').count,
+            hours: db.get('SELECT COALESCE(SUM(hours_logged), 0) as count FROM attendance').count
         };
         res.json(stats);
     } catch (error) {

@@ -6,7 +6,7 @@ const router = express.Router();
 // Get all sessions
 router.get('/', (req, res) => {
     try {
-        const sessions = db.prepare('SELECT * FROM sessions ORDER BY session_date DESC').all();
+        const sessions = db.all('SELECT * FROM sessions ORDER BY session_date DESC');
         res.json(sessions);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -17,11 +17,12 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
     const { session_date, start_time, end_time, location } = req.body;
     try {
-        const info = db.prepare(`
+        db.run(`
             INSERT INTO sessions (session_date, start_time, end_time, location)
             VALUES (?, ?, ?, ?)
-        `).run(session_date, start_time, end_time, location);
-        res.status(201).json({ id: info.lastInsertRowid, message: 'Session created successfully' });
+        `, [session_date, start_time, end_time, location]);
+        const info = db.get('SELECT last_insert_rowid() as id');
+        res.status(201).json({ id: info.id, message: 'Session created successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -31,11 +32,12 @@ router.post('/', (req, res) => {
 router.post('/:id/attendance', (req, res) => {
     const { student_id, volunteer_id, hours_logged, notes } = req.body;
     try {
-        const info = db.prepare(`
+        db.run(`
             INSERT INTO attendance (session_id, student_id, volunteer_id, hours_logged, notes)
             VALUES (?, ?, ?, ?, ?)
-        `).run(req.params.id, student_id, volunteer_id, hours_logged, notes);
-        res.status(201).json({ id: info.lastInsertRowid, message: 'Attendance recorded successfully' });
+        `, [req.params.id, student_id, volunteer_id, hours_logged, notes]);
+        const info = db.get('SELECT last_insert_rowid() as id');
+        res.status(201).json({ id: info.id, message: 'Attendance recorded successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -44,7 +46,7 @@ router.post('/:id/attendance', (req, res) => {
 // Get session attendance
 router.get('/:id/attendance', (req, res) => {
     try {
-        const attendance = db.prepare(`
+        const attendance = db.all(`
             SELECT a.*, 
                    s.first_name as student_first_name, s.last_name as student_last_name,
                    v.first_name as volunteer_first_name, v.last_name as volunteer_last_name
@@ -52,7 +54,7 @@ router.get('/:id/attendance', (req, res) => {
             JOIN students s ON a.student_id = s.id
             JOIN volunteers v ON a.volunteer_id = v.id
             WHERE a.session_id = ?
-        `).all(req.params.id);
+        `, [req.params.id]);
         res.json(attendance);
     } catch (error) {
         res.status(500).json({ error: error.message });
