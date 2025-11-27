@@ -24,6 +24,39 @@ router.get('/', (req, res) => {
     }
 });
 
+// Get current student's data (for student role)
+router.get('/me', (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'student') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        const student = db.get(`
+            SELECT 
+                s.id,
+                s.first_name as firstName,
+                s.last_name as lastName,
+                s.grade_level as gradeLevel,
+                s.photo_url as photoUrl,
+                s.progress_summary as progressSummary,
+                s.birthday,
+                s.bio,
+                s.google_drive_folder_id as googleDriveFolderId,
+                u.email 
+            FROM students s 
+            JOIN users u ON s.user_id = u.id 
+            WHERE s.user_id = ?
+        `, [req.user.id]);
+
+        if (!student) {
+            return res.status(404).json({ error: 'Student profile not found' });
+        }
+        res.json(student);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get student by ID
 router.get('/:id', (req, res) => {
     try {
