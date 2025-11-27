@@ -28,9 +28,9 @@ const mockMasterDb = {
 export const getTenantConnectionDetails = async (tenantId) => {
     // In a real application, you would query the Master DB here.
     // Example: const tenant = await masterDb.query('SELECT * FROM tenants WHERE id = ?', [tenantId]);
-    
+
     const tenant = mockMasterDb[tenantId];
-    
+
     if (!tenant) {
         throw new Error(`Tenant ${tenantId} not found in registry.`);
     }
