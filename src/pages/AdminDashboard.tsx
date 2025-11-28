@@ -48,14 +48,20 @@ const AdminDashboard: React.FC = () => {
     const [showAllStudents, setShowAllStudents] = useState(false);
     const [showAllVolunteers, setShowAllVolunteers] = useState(false);
     const [showAllSessions, setShowAllSessions] = useState(false);
+    const [viewFilter, setViewFilter] = useState<'all' | 'students' | 'volunteers' | 'sessions'>('all');
 
     // Derived state for filtered lists
-    const filteredStudents = students.filter(s =>
-        `${s.firstName} ${s.lastName}`.toLowerCase().includes(studentSearch.toLowerCase())
-    );
-    const filteredVolunteers = volunteers.filter(v =>
-        `${v.firstName} ${v.lastName}`.toLowerCase().includes(volunteerSearch.toLowerCase())
-    );
+    const filteredStudents = students
+        .filter(s =>
+            `${s.firstName} ${s.lastName}`.toLowerCase().includes(studentSearch.toLowerCase())
+        )
+        .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
+
+    const filteredVolunteers = volunteers
+        .filter(v =>
+            `${v.firstName} ${v.lastName}`.toLowerCase().includes(volunteerSearch.toLowerCase())
+        )
+        .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
 
     const displayedStudents = showAllStudents ? filteredStudents : filteredStudents.slice(0, 6);
     const displayedVolunteers = showAllVolunteers ? filteredVolunteers : filteredVolunteers.slice(0, 6);
@@ -123,12 +129,13 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex justify-between items-center mb-xl">
                     <div>
                         <h1>Admin Dashboard</h1>
-                        <p className="text-muted">Manage students, volunteers, and sessions</p>
+                        <p style={{ color: 'var(--neutral-900)' }}>Manage students, volunteers, and sessions</p>
                     </div>
                     <div className="flex gap-md">
                         <button
                             onClick={() => setShowCreateUser(true)}
-                            className="btn btn-outline"
+                            className="btn btn-primary"
+                            style={{ marginRight: 'var(--spacing-sm)' }}
                         >
                             + Add User
                         </button>
@@ -143,15 +150,45 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Stats Overview */}
                 <div className="grid grid-3 mb-xl">
-                    <div className="stat-card">
+                    <div
+                        className="stat-card"
+                        onClick={() => {
+                            setViewFilter('students');
+                            setShowAllStudents(true);
+                            document.getElementById('students-section')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
                         <div className="stat-value">{students.length}</div>
                         <div className="stat-label">Total Students</div>
                     </div>
-                    <div className="stat-card">
+                    <div
+                        className="stat-card"
+                        onClick={() => {
+                            setViewFilter('volunteers');
+                            setShowAllVolunteers(true);
+                            document.getElementById('volunteers-section')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
                         <div className="stat-value">{volunteers.length}</div>
                         <div className="stat-label">Active Volunteers</div>
                     </div>
-                    <div className="stat-card">
+                    <div
+                        className="stat-card"
+                        onClick={() => {
+                            setViewFilter('sessions');
+                            setShowAllSessions(true);
+                            document.getElementById('sessions-section')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
                         <div className="stat-value">{sessions.length}</div>
                         <div className="stat-label">Sessions Held</div>
                     </div>
@@ -297,16 +334,24 @@ const AdminDashboard: React.FC = () => {
                 )}
 
                 {/* Students Section */}
-                <div className="mb-xl">
+                <div className="mb-xl" id="students-section">
                     <div className="flex justify-between items-center mb-md">
                         <h2>Students</h2>
                         <input
                             type="text"
-                            placeholder="Search students..."
+                            placeholder="🔍 Search students..."
                             className="form-input"
-                            style={{ maxWidth: '300px' }}
+                            style={{
+                                maxWidth: '300px',
+                                borderRadius: 'var(--radius-full)',
+                                paddingLeft: 'var(--spacing-lg)',
+                                border: '2px solid var(--neutral-200)',
+                                transition: 'all 0.2s'
+                            }}
                             value={studentSearch}
                             onChange={(e) => setStudentSearch(e.target.value)}
+                            onFocus={(e) => e.currentTarget.style.borderColor = 'var(--primary-500)'}
+                            onBlur={(e) => e.currentTarget.style.borderColor = 'var(--neutral-200)'}
                         />
                     </div>
                     <div className="grid grid-3">
@@ -368,16 +413,24 @@ const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Volunteers Section */}
-                <div className="mb-xl">
+                <div className="mb-xl" id="volunteers-section">
                     <div className="flex justify-between items-center mb-md">
                         <h2>Volunteers</h2>
                         <input
                             type="text"
-                            placeholder="Search volunteers..."
+                            placeholder="🔍 Search volunteers..."
                             className="form-input"
-                            style={{ maxWidth: '300px' }}
+                            style={{
+                                maxWidth: '300px',
+                                borderRadius: 'var(--radius-full)',
+                                paddingLeft: 'var(--spacing-lg)',
+                                border: '2px solid var(--neutral-200)',
+                                transition: 'all 0.2s'
+                            }}
                             value={volunteerSearch}
                             onChange={(e) => setVolunteerSearch(e.target.value)}
+                            onFocus={(e) => e.currentTarget.style.borderColor = 'var(--primary-500)'}
+                            onBlur={(e) => e.currentTarget.style.borderColor = 'var(--neutral-200)'}
                         />
                     </div>
                     <div className="grid grid-3">
