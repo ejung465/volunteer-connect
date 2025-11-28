@@ -56,6 +56,8 @@ const Navbar: React.FC = () => {
                 const studentData = await api.get('/api/students/me');
                 if (studentData && studentData.id) {
                     navigate(`/student/${studentData.id}`);
+                } else {
+                    console.error('Student ID not found');
                 }
             } catch (error) {
                 console.error('Failed to fetch student data:', error);

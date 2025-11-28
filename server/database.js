@@ -138,6 +138,8 @@ const initDatabase = async () => {
       last_name TEXT NOT NULL,
       photo_url TEXT,
       bio TEXT,
+      grade TEXT,
+      school TEXT,
       total_hours REAL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

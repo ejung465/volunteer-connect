@@ -77,4 +77,80 @@ router.get('/:id/attendance', (req, res) => {
     }
 });
 
+// Get volunteer RSVP status for a session
+router.get('/:id/rsvp', (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'volunteer') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const volunteer = db.get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
+        if (!volunteer) {
+            return res.status(404).json({ error: 'Volunteer profile not found' });
+        }
+        
+        const rsvp = db.get(`
+            SELECT is_available 
+            FROM volunteer_availability 
+            WHERE volunteer_id = ? AND session_id = ?
+        `, [volunteer.id, req.params.id]);
+        
+        res.json({ isAvailable: rsvp ? rsvp.is_available : null });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update volunteer RSVP for a session
+router.post('/:id/rsvp', (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'volunteer') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const { isAvailable } = req.body;
+        const volunteer = db.get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
+        if (!volunteer) {
+            return res.status(404).json({ error: 'Volunteer profile not found' });
+        }
+        
+        // Check if session has passed
+        const session = db.get('SELECT session_date FROM sessions WHERE id = ?', [req.params.id]);
+        if (!session) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+        
+        const sessionDate = new Date(session.session_date);
+        const now = new Date();
+        if (sessionDate < now) {
+            return res.status(400).json({ error: 'Cannot change RSVP for past sessions' });
+        }
+        
+        // Check if RSVP exists
+        const existing = db.get(`
+            SELECT id FROM volunteer_availability 
+            WHERE volunteer_id = ? AND session_id = ?
+        `, [volunteer.id, req.params.id]);
+        
+        if (existing) {
+            // Update existing RSVP
+            db.run(`
+                UPDATE volunteer_availability 
+                SET is_available = ?
+                WHERE volunteer_id = ? AND session_id = ?
+            `, [isAvailable ? 1 : 0, volunteer.id, req.params.id]);
+        } else {
+            // Insert new RSVP
+            db.run(`
+                INSERT INTO volunteer_availability (volunteer_id, session_id, is_available)
+                VALUES (?, ?, ?)
+            `, [volunteer.id, req.params.id, isAvailable ? 1 : 0]);
+        }
+        
+        res.json({ message: 'RSVP updated successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

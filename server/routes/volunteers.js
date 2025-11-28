@@ -13,12 +13,46 @@ router.get('/', (req, res) => {
                 v.last_name as lastName,
                 v.photo_url as photoUrl,
                 v.bio,
+                v.grade,
+                v.school,
                 v.total_hours as totalHours,
                 u.email 
             FROM volunteers v 
             JOIN users u ON v.user_id = u.id
         `);
         res.json(volunteers);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get current volunteer's data (for volunteer role)
+router.get('/me', (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'volunteer') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        const volunteer = db.get(`
+            SELECT 
+                v.id,
+                v.first_name as firstName,
+                v.last_name as lastName,
+                v.photo_url as photoUrl,
+                v.bio,
+                v.grade,
+                v.school,
+                v.total_hours as totalHours,
+                u.email 
+            FROM volunteers v 
+            JOIN users u ON v.user_id = u.id 
+            WHERE v.user_id = ?
+        `, [req.user.id]);
+
+        if (!volunteer) {
+            return res.status(404).json({ error: 'Volunteer profile not found' });
+        }
+        res.json(volunteer);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -34,6 +68,8 @@ router.get('/:id', (req, res) => {
                 v.last_name as lastName,
                 v.photo_url as photoUrl,
                 v.bio,
+                v.grade,
+                v.school,
                 v.total_hours as totalHours,
                 u.email 
             FROM volunteers v 
@@ -83,20 +119,91 @@ router.get('/:id/stats', (req, res) => {
     }
 });
 
+// Get upcoming sessions for current volunteer
+router.get('/upcoming-sessions', (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'volunteer') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const volunteer = db.get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
+        if (!volunteer) {
+            return res.status(404).json({ error: 'Volunteer profile not found' });
+        }
+        
+        const now = new Date().toISOString().split('T')[0];
+        const sessions = db.all(`
+            SELECT 
+                s.id,
+                s.title,
+                s.session_date as sessionDate,
+                COALESCE(va.is_available, NULL) as isAvailable
+            FROM sessions s
+            LEFT JOIN volunteer_availability va ON va.session_id = s.id AND va.volunteer_id = ?
+            WHERE s.session_date >= ?
+            ORDER BY s.session_date ASC
+        `, [volunteer.id, now]);
+        
+        res.json(sessions.map(s => ({
+            ...s,
+            isAvailable: s.isAvailable === 1 ? true : s.isAvailable === 0 ? false : null
+        })));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get matched students for current volunteer
+router.get('/matched-students', (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'volunteer') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const volunteer = db.get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
+        if (!volunteer) {
+            return res.status(404).json({ error: 'Volunteer profile not found' });
+        }
+        
+        // Get students this volunteer has worked with, sorted by session count
+        const students = db.all(`
+            SELECT 
+                s.id,
+                s.first_name as firstName,
+                s.last_name as lastName,
+                s.photo_url as photoUrl,
+                s.grade_level as gradeLevel,
+                s.progress_summary as progressSummary,
+                COUNT(DISTINCT a.session_id) as sessionCount,
+                MAX(a.created_at) as lastSessionDate
+            FROM attendance a
+            JOIN students s ON a.student_id = s.id
+            WHERE a.volunteer_id = ?
+            GROUP BY s.id, s.first_name, s.last_name, s.photo_url, s.grade_level, s.progress_summary
+            ORDER BY sessionCount DESC, lastSessionDate DESC
+        `, [volunteer.id]);
+        
+        res.json(students);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Update volunteer profile
 router.put('/:id', (req, res) => {
-    const { firstName, lastName, bio, phone, photoUrl } = req.body;
+    const { firstName, lastName, bio, grade, school, photoUrl } = req.body;
     try {
         db.run(`
             UPDATE volunteers 
             SET first_name = COALESCE(?, first_name),
                 last_name = COALESCE(?, last_name),
                 bio = COALESCE(?, bio),
-                phone = COALESCE(?, phone),
+                grade = COALESCE(?, grade),
+                school = COALESCE(?, school),
                 photo_url = COALESCE(?, photo_url),
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `, [firstName, lastName, bio, phone, photoUrl, req.params.id]);
+        `, [firstName, lastName, bio, grade, school, photoUrl, req.params.id]);
         res.json({ message: 'Volunteer profile updated successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });

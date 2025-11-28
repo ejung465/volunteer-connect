@@ -18,6 +18,13 @@ interface SessionData {
     hours: number;
 }
 
+interface UpcomingSession {
+    id: number;
+    title?: string;
+    sessionDate: string;
+    isAvailable: boolean | null;
+}
+
 const COLORS = ['#667eea', '#764ba2', '#f5576c', '#f093fb', '#4facfe', '#00f2fe'];
 
 const VolunteerDashboard: React.FC = () => {
@@ -25,8 +32,9 @@ const VolunteerDashboard: React.FC = () => {
     const [matchedStudents, setMatchedStudents] = useState<MatchedStudent[]>([]);
     const [totalHours, setTotalHours] = useState(0);
     const [sessionData, setSessionData] = useState<SessionData[]>([]);
-    const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
+    const [upcomingSessions, setUpcomingSessions] = useState<UpcomingSession[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [updatingRSVP, setUpdatingRSVP] = useState<number | null>(null);
 
     useEffect(() => {
         if (user) {
@@ -62,6 +70,31 @@ const VolunteerDashboard: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleRSVP = async (sessionId: number, isAvailable: boolean) => {
+        try {
+            setUpdatingRSVP(sessionId);
+            await api.post(`/api/sessions/${sessionId}/rsvp`, { isAvailable });
+            
+            // Update local state
+            setUpcomingSessions(sessions => 
+                sessions.map(s => 
+                    s.id === sessionId 
+                        ? { ...s, isAvailable } 
+                        : s
+                )
+            );
+        } catch (error: any) {
+            console.error('Failed to update RSVP:', error);
+            alert(error.message || 'Failed to update RSVP. Please try again.');
+        } finally {
+            setUpdatingRSVP(null);
+        }
+    };
+
+    const isSessionPast = (sessionDate: string) => {
+        return new Date(sessionDate) < new Date();
     };
 
     if (isLoading) {
@@ -224,29 +257,64 @@ const VolunteerDashboard: React.FC = () => {
                     <h2>Upcoming Sessions</h2>
                     {upcomingSessions.length > 0 ? (
                         <div className="grid grid-2">
-                            {upcomingSessions.map((session) => (
-                                <div key={session.id} className="card">
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <h4 style={{ marginBottom: 'var(--spacing-xs)' }}>
-                                                {new Date(session.sessionDate).toLocaleDateString('en-US', {
-                                                    weekday: 'long',
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric',
-                                                })}
-                                            </h4>
-                                            <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 0 }}>
-                                                {session.isAvailable ? (
-                                                    <span className="badge badge-success">You're attending</span>
+                            {upcomingSessions.map((session) => {
+                                const isPast = isSessionPast(session.sessionDate);
+                                const canEdit = !isPast;
+                                
+                                return (
+                                    <div key={session.id} className="card">
+                                        <div className="flex justify-between items-center">
+                                            <div style={{ flex: 1 }}>
+                                                <h4 style={{ marginBottom: 'var(--spacing-xs)' }}>
+                                                    {session.title || 'Weekly Tutoring'}
+                                                </h4>
+                                                <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-md)' }}>
+                                                    {new Date(session.sessionDate).toLocaleDateString('en-US', {
+                                                        weekday: 'long',
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric',
+                                                    })}
+                                                </p>
+                                                {canEdit ? (
+                                                    <div className="flex gap-sm">
+                                                        <button
+                                                            onClick={() => handleRSVP(session.id, true)}
+                                                            disabled={updatingRSVP === session.id || session.isAvailable === true}
+                                                            className="btn btn-sm"
+                                                            style={{
+                                                                backgroundColor: session.isAvailable === true ? '#10b981' : 'transparent',
+                                                                color: session.isAvailable === true ? 'white' : '#10b981',
+                                                                border: '2px solid #10b981',
+                                                                minWidth: '100px',
+                                                                opacity: updatingRSVP === session.id ? 0.5 : 1
+                                                            }}
+                                                        >
+                                                            ✓ Going
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleRSVP(session.id, false)}
+                                                            disabled={updatingRSVP === session.id || session.isAvailable === false}
+                                                            className="btn btn-sm"
+                                                            style={{
+                                                                backgroundColor: session.isAvailable === false ? '#ef4444' : 'transparent',
+                                                                color: session.isAvailable === false ? 'white' : '#ef4444',
+                                                                border: '2px solid #ef4444',
+                                                                minWidth: '100px',
+                                                                opacity: updatingRSVP === session.id ? 0.5 : 1
+                                                            }}
+                                                        >
+                                                            ✗ Not Going
+                                                        </button>
+                                                    </div>
                                                 ) : (
-                                                    <span className="badge badge-warning">Mark availability</span>
+                                                    <span className="badge badge-secondary">Session has passed</span>
                                                 )}
-                                            </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="card text-center">
