@@ -103,6 +103,46 @@ router.post('/', (req, res) => {
     }
 });
 
+// Get current volunteer's stats
+router.get('/stats', (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'volunteer') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        const volunteer = db.get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
+        if (!volunteer) {
+            return res.status(404).json({ error: 'Volunteer profile not found' });
+        }
+
+        // Get total hours
+        const hoursData = db.get(`
+            SELECT SUM(hours_logged) as totalHours
+            FROM attendance
+            WHERE volunteer_id = ?
+        `, [volunteer.id]);
+
+        // Get session data by student
+        const sessionData = db.all(`
+            SELECT 
+                s.first_name || ' ' || s.last_name as studentName,
+                SUM(a.hours_logged) as hours
+            FROM attendance a
+            JOIN students s ON a.student_id = s.id
+            WHERE a.volunteer_id = ?
+            GROUP BY s.id, s.first_name, s.last_name
+            ORDER BY hours DESC
+        `, [volunteer.id]);
+
+        res.json({
+            totalHours: hoursData?.totalHours || 0,
+            sessionData: sessionData || []
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get volunteer stats
 router.get('/:id/stats', (req, res) => {
     try {
@@ -125,12 +165,12 @@ router.get('/upcoming-sessions', (req, res) => {
         if (!req.user || req.user.role !== 'volunteer') {
             return res.status(403).json({ error: 'Access denied' });
         }
-        
+
         const volunteer = db.get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
         if (!volunteer) {
             return res.status(404).json({ error: 'Volunteer profile not found' });
         }
-        
+
         const now = new Date().toISOString().split('T')[0];
         const sessions = db.all(`
             SELECT 
@@ -143,7 +183,7 @@ router.get('/upcoming-sessions', (req, res) => {
             WHERE s.session_date >= ?
             ORDER BY s.session_date ASC
         `, [volunteer.id, now]);
-        
+
         res.json(sessions.map(s => ({
             ...s,
             isAvailable: s.isAvailable === 1 ? true : s.isAvailable === 0 ? false : null
@@ -159,12 +199,12 @@ router.get('/matched-students', (req, res) => {
         if (!req.user || req.user.role !== 'volunteer') {
             return res.status(403).json({ error: 'Access denied' });
         }
-        
+
         const volunteer = db.get('SELECT id FROM volunteers WHERE user_id = ?', [req.user.id]);
         if (!volunteer) {
             return res.status(404).json({ error: 'Volunteer profile not found' });
         }
-        
+
         // Get students this volunteer has worked with, sorted by session count
         const students = db.all(`
             SELECT 
@@ -182,7 +222,7 @@ router.get('/matched-students', (req, res) => {
             GROUP BY s.id, s.first_name, s.last_name, s.photo_url, s.grade_level, s.progress_summary
             ORDER BY sessionCount DESC, lastSessionDate DESC
         `, [volunteer.id]);
-        
+
         res.json(students);
     } catch (error) {
         res.status(500).json({ error: error.message });
