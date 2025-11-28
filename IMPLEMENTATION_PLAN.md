@@ -12,7 +12,12 @@
 - [ ] Create volunteer hours tracking system with publish feature
 
 ## Phase 2: Volunteer Profile & Dashboard
-- [ ] Add volunteer profile fields (name, grade, school, bio)
+- [ ] Add volun
+
+
+
+
+teer profile fields (name, grade, school, bio)
 - [ ] Center navigation buttons in header
 - [ ] Fix text visibility (make subtitles black)
 - [ ] Add RSVP system for upcoming sessions (green/red checkmarks)
