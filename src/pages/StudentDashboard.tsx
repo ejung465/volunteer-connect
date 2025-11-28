@@ -71,7 +71,7 @@ const StudentDashboard: React.FC = () => {
             <div className="fade-in">
                 <div className="mb-xl">
                     <h1>Welcome, {studentData.firstName}!</h1>
-                    <p className="text-muted">View your profile and track your progress</p>
+                    <p style={{ color: '#000000' }}>View your profile and track your progress</p>
                 </div>
 
                 <div className="card">

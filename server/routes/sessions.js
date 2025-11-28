@@ -9,10 +9,8 @@ router.get('/', (req, res) => {
         const sessions = db.all(`
             SELECT 
                 s.id, 
+                s.title,
                 s.session_date as sessionDate,
-                s.start_time as startTime,
-                s.end_time as endTime,
-                s.location,
                 (SELECT COUNT(*) FROM attendance a WHERE a.session_id = s.id) as attendanceCount
             FROM sessions s
             ORDER BY s.session_date DESC
@@ -25,12 +23,16 @@ router.get('/', (req, res) => {
 
 // Create new session
 router.post('/', (req, res) => {
-    const { session_date, start_time, end_time, location } = req.body;
+    const { session_date, title, created_by_admin_id } = req.body;
     try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
         db.run(`
-            INSERT INTO sessions (session_date, start_time, end_time, location)
-            VALUES (?, ?, ?, ?)
-        `, [session_date, start_time, end_time, location]);
+            INSERT INTO sessions (session_date, title, created_by_admin_id)
+            VALUES (?, ?, ?)
+        `, [session_date, title || 'Weekly Tutoring', req.user.id]);
         const info = db.get('SELECT last_insert_rowid() as id');
         res.status(201).json({ id: info.id, message: 'Session created successfully' });
     } catch (error) {
@@ -57,7 +59,11 @@ router.post('/:id/attendance', (req, res) => {
 router.get('/:id/attendance', (req, res) => {
     try {
         const attendance = db.all(`
-            SELECT a.*, 
+            SELECT a.id,
+                   a.session_id as sessionId,
+                   a.volunteer_id as volunteerId,
+                   a.student_id as studentId,
+                   a.hours_logged as hoursLogged,
                    s.first_name as student_first_name, s.last_name as student_last_name,
                    v.first_name as volunteer_first_name, v.last_name as volunteer_last_name
             FROM attendance a

@@ -87,7 +87,7 @@ const VolunteerDashboard: React.FC = () => {
             <div className="fade-in">
                 <div className="mb-xl">
                     <h1>Welcome back, {user?.firstName || 'Volunteer'}!</h1>
-                    <p className="text-muted">Here's your volunteer dashboard</p>
+                    <p style={{ color: '#000000' }}>Here's your volunteer dashboard</p>
                 </div>
 
                 {/* Stats Overview */}

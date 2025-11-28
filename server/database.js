@@ -112,7 +112,7 @@ const initDatabase = async () => {
     )
   `);
 
-  db.run(`
+    db.run(`
     CREATE TABLE students (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER UNIQUE NOT NULL,
@@ -130,7 +130,7 @@ const initDatabase = async () => {
     )
   `);
 
-  db.run(`
+    db.run(`
     CREATE TABLE volunteers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER UNIQUE NOT NULL,
@@ -145,9 +145,10 @@ const initDatabase = async () => {
     )
   `);
 
-  db.run(`
+    db.run(`
     CREATE TABLE sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT DEFAULT 'Weekly Tutoring',
       session_date DATE NOT NULL,
       created_by_admin_id INTEGER NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -155,7 +156,7 @@ const initDatabase = async () => {
     )
   `);
 
-  db.run(`
+    db.run(`
     CREATE TABLE attendance (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       session_id INTEGER NOT NULL,
@@ -170,7 +171,7 @@ const initDatabase = async () => {
     )
   `);
 
-  db.run(`
+    db.run(`
     CREATE TABLE student_progress (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL,
@@ -185,7 +186,7 @@ const initDatabase = async () => {
     )
   `);
 
-  db.run(`
+    db.run(`
     CREATE TABLE volunteer_availability (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       volunteer_id INTEGER NOT NULL,
@@ -213,7 +214,7 @@ const initDatabase = async () => {
     userCount = { count: 0 };
   }
   const needsSeeding = !userCount || userCount.count === 0;
-  
+
   console.log(`📊 Current user count: ${userCount?.count || 0}`);
 
   if (needsSeeding) {

@@ -7,6 +7,7 @@ import volunteerRoutes from './routes/volunteers.js';
 import sessionRoutes from './routes/sessions.js';
 import matchingRoutes from './routes/matching.js';
 import adminRoutes from './routes/admin.js';
+import attendanceRoutes from './routes/attendance.js';
 import './database.js'; // Initialize database
 
 dotenv.config();
@@ -41,6 +42,7 @@ app.use('/api/volunteers', volunteerRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/matching', matchingRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/sessions/attendance', attendanceRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

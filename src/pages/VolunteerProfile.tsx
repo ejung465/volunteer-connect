@@ -6,7 +6,7 @@ const VolunteerProfile: React.FC = () => {
         <div className="container" style={{ paddingTop: 'var(--spacing-2xl)', paddingBottom: 'var(--spacing-2xl)' }}>
             <div className="fade-in">
                 <h1>Volunteer Profile</h1>
-                <p className="text-muted">Manage your volunteer profile and preferences</p>
+                <p style={{ color: '#000000' }}>Manage your volunteer profile and preferences</p>
 
                 <div className="card mt-xl">
                     <p className="text-center text-muted">Profile page coming soon...</p>
