@@ -62,7 +62,7 @@ const VolunteerProfile: React.FC = () => {
     const handleSave = async () => {
         try {
             let photoUrl = volunteerData?.photoUrl;
-            
+
             // Upload photo if changed
             if (photoFile) {
                 const formData = new FormData();
@@ -140,7 +140,7 @@ const VolunteerProfile: React.FC = () => {
                                 <div
                                     className="avatar avatar-xl"
                                     style={{
-                                        background: 'var(--primary-gradient)',
+                                        background: 'var(--volunteer-gradient)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',

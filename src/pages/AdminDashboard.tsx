@@ -64,10 +64,12 @@ const AdminDashboard: React.FC = () => {
         bio: ''
     });
     const [memberSearch, setMemberSearch] = useState('');
+    const [memberTypeFilter, setMemberTypeFilter] = useState<'all' | 'student' | 'volunteer'>('all');
     const [sessionSearch, setSessionSearch] = useState('');
     const [memberToRemove, setMemberToRemove] = useState<{ id: number; name: string; type: 'student' | 'volunteer' } | null>(null);
     const [volunteerHoursEdits, setVolunteerHoursEdits] = useState<{ [key: number]: number }>({});
     const [selectedSessionForHours, setSelectedSessionForHours] = useState<number | null>(null);
+    const [selectedSessionDetails, setSelectedSessionDetails] = useState<Session | null>(null);
 
     // Filter members (students + volunteers) alphabetically
     const allMembers = [
@@ -80,7 +82,8 @@ const AdminDashboard: React.FC = () => {
     });
 
     const filteredMembers = allMembers.filter(m =>
-        `${m.firstName} ${m.lastName}`.toLowerCase().includes(memberSearch.toLowerCase())
+        `${m.firstName} ${m.lastName}`.toLowerCase().includes(memberSearch.toLowerCase()) &&
+        (memberTypeFilter === 'all' || m.type === memberTypeFilter)
     );
 
     // Filter sessions (past and future)
@@ -89,7 +92,7 @@ const AdminDashboard: React.FC = () => {
         .sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime());
     const futureSessions = sessions.filter(s => new Date(s.sessionDate) >= now)
         .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
-    
+
     const allSessionsList = [...futureSessions, ...pastSessions];
     const filteredSessions = allSessionsList.filter(s =>
         (s.title || 'Weekly Tutoring').toLowerCase().includes(sessionSearch.toLowerCase()) ||
@@ -105,6 +108,13 @@ const AdminDashboard: React.FC = () => {
             fetchAttendanceForSession(selectedSessionForHours);
         }
     }, [activeTab, selectedSessionForHours]);
+
+    // Fetch attendance when viewing session details
+    useEffect(() => {
+        if (selectedSessionDetails) {
+            fetchAttendanceForSession(selectedSessionDetails.id);
+        }
+    }, [selectedSessionDetails]);
 
     const fetchData = async () => {
         try {
@@ -143,7 +153,8 @@ const AdminDashboard: React.FC = () => {
             fetchData();
         } catch (error: any) {
             console.error('Failed to create user:', error);
-            alert(error.message || 'Failed to create user');
+            const errorMessage = error.response?.data?.error || error.message || 'Failed to create user';
+            alert(errorMessage);
         }
     };
 
@@ -208,8 +219,16 @@ const AdminDashboard: React.FC = () => {
             setTimeout(() => {
                 document.getElementById('sessions-list')?.scrollIntoView({ behavior: 'smooth' });
             }, 100);
-        } else {
+        } else if (type === 'students') {
             setActiveTab('members');
+            setMemberTypeFilter('student');
+            setMemberSearch('');
+            setTimeout(() => {
+                document.getElementById('members-list')?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        } else if (type === 'volunteers') {
+            setActiveTab('members');
+            setMemberTypeFilter('volunteer');
             setMemberSearch('');
             setTimeout(() => {
                 document.getElementById('members-list')?.scrollIntoView({ behavior: 'smooth' });
@@ -229,11 +248,9 @@ const AdminDashboard: React.FC = () => {
         <div className="container" style={{ paddingTop: 'var(--spacing-2xl)', paddingBottom: 'var(--spacing-2xl)' }}>
             <div className="fade-in">
                 {/* Header */}
-                <div className="flex justify-between items-center mb-xl">
-                    <div>
-                        <h1 style={{ textAlign: 'center', width: '100%' }}>Admin Dashboard</h1>
-                        <p style={{ color: '#000000', textAlign: 'center' }}>Manage students, volunteers, and sessions</p>
-                    </div>
+                <div className="mb-xl" style={{ textAlign: 'center' }}>
+                    <h1>Admin Dashboard</h1>
+                    <p style={{ color: '#000000' }}>Manage students, volunteers, and sessions</p>
                 </div>
 
                 {/* Stats Overview */}
@@ -277,10 +294,10 @@ const AdminDashboard: React.FC = () => {
                             onClick={() => setActiveTab('members')}
                             style={{
                                 padding: 'var(--spacing-md) var(--spacing-lg)',
-                                background: activeTab === 'members' ? 'transparent' : 'transparent',
+                                background: 'transparent',
                                 border: 'none',
                                 borderBottom: activeTab === 'members' ? '3px solid var(--primary-500)' : '3px solid transparent',
-                                color: activeTab === 'members' ? 'var(--primary-500)' : 'var(--neutral-600)',
+                                color: activeTab === 'members' ? 'var(--primary-500)' : 'white',
                                 fontWeight: activeTab === 'members' ? 600 : 400,
                                 cursor: 'pointer',
                                 fontSize: 'var(--font-size-lg)',
@@ -296,7 +313,7 @@ const AdminDashboard: React.FC = () => {
                                 background: 'transparent',
                                 border: 'none',
                                 borderBottom: activeTab === 'sessions' ? '3px solid var(--primary-500)' : '3px solid transparent',
-                                color: activeTab === 'sessions' ? 'var(--primary-500)' : 'var(--neutral-600)',
+                                color: activeTab === 'sessions' ? 'var(--primary-500)' : 'white',
                                 fontWeight: activeTab === 'sessions' ? 600 : 400,
                                 cursor: 'pointer',
                                 fontSize: 'var(--font-size-lg)',
@@ -312,7 +329,7 @@ const AdminDashboard: React.FC = () => {
                                 background: 'transparent',
                                 border: 'none',
                                 borderBottom: activeTab === 'volunteerHours' ? '3px solid var(--primary-500)' : '3px solid transparent',
-                                color: activeTab === 'volunteerHours' ? 'var(--primary-500)' : 'var(--neutral-600)',
+                                color: activeTab === 'volunteerHours' ? 'var(--primary-500)' : 'white',
                                 fontWeight: activeTab === 'volunteerHours' ? 600 : 400,
                                 cursor: 'pointer',
                                 fontSize: 'var(--font-size-lg)',
@@ -327,15 +344,37 @@ const AdminDashboard: React.FC = () => {
                 {/* Members Tab */}
                 {activeTab === 'members' && (
                     <div id="members-list">
-                        <div className="flex justify-between items-center mb-lg">
-                            <h2>All Members</h2>
+                        <div className="flex justify-between items-center mb-lg flex-wrap gap-md">
+                            <div className="flex items-center gap-md">
+                                <h2>All Members</h2>
+                                <div className="flex gap-sm">
+                                    <button
+                                        className={`btn btn-sm ${memberTypeFilter === 'all' ? 'btn-primary' : 'btn-outline'}`}
+                                        onClick={() => setMemberTypeFilter('all')}
+                                    >
+                                        All
+                                    </button>
+                                    <button
+                                        className={`btn btn-sm ${memberTypeFilter === 'student' ? 'btn-primary' : 'btn-outline'}`}
+                                        onClick={() => setMemberTypeFilter('student')}
+                                    >
+                                        Students
+                                    </button>
+                                    <button
+                                        className={`btn btn-sm ${memberTypeFilter === 'volunteer' ? 'btn-primary' : 'btn-outline'}`}
+                                        onClick={() => setMemberTypeFilter('volunteer')}
+                                    >
+                                        Volunteers
+                                    </button>
+                                </div>
+                            </div>
                             <div className="flex gap-md items-center">
                                 <input
                                     type="text"
-                                    placeholder="🔍 Search members..."
+                                    placeholder="🔍 Search"
                                     className="form-input"
                                     style={{
-                                        maxWidth: '350px',
+                                        maxWidth: '200px',
                                         width: '100%',
                                         borderRadius: 'var(--radius-full)',
                                         padding: 'var(--spacing-sm) var(--spacing-lg)',
@@ -368,64 +407,89 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <div className="grid grid-3">
                             {filteredMembers.map((member) => (
-                                <div key={`${member.type}-${member.id}`} className="card">
-                                    <div className="flex justify-between items-start">
-                                        <div style={{ flex: 1 }}>
-                                            <div className="flex items-center gap-md mb-md">
-                                                {member.photoUrl ? (
-                                                    <img
-                                                        src={member.photoUrl}
-                                                        alt={`${member.firstName} ${member.lastName}`}
-                                                        className="avatar avatar-lg"
-                                                    />
-                                                ) : (
-                                                    <div
-                                                        className="avatar avatar-lg"
-                                                        style={{
-                                                            background: 'var(--primary-gradient)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            color: 'white',
-                                                            fontSize: 'var(--font-size-xl)',
-                                                            fontWeight: 700,
-                                                        }}
-                                                    >
-                                                        {member.firstName[0]}{member.lastName[0]}
+                                <div key={`${member.type}-${member.id}`} className="card" style={{ position: 'relative', cursor: 'pointer' }}>
+                                    <Link to={member.type === 'student' ? `/student/${member.id}` : `/volunteer`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+                                        <div className="flex justify-between items-start">
+                                            <div style={{ flex: 1 }}>
+                                                <div className="flex items-center gap-md mb-md">
+                                                    {member.photoUrl ? (
+                                                        <img
+                                                            src={member.photoUrl}
+                                                            alt={`${member.firstName} ${member.lastName}`}
+                                                            className="avatar avatar-lg"
+                                                        />
+                                                    ) : (
+                                                        <div
+                                                            className="avatar avatar-lg"
+                                                            style={{
+                                                                background: member.type === 'student' ? 'var(--student-gradient)' : 'var(--volunteer-gradient)',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                color: 'white',
+                                                                fontSize: 'var(--font-size-xl)',
+                                                                fontWeight: 700,
+                                                            }}
+                                                        >
+                                                            {member.firstName[0]}{member.lastName[0]}
+                                                        </div>
+                                                    )}
+                                                    <div style={{ flex: 1 }}>
+                                                        <h4 style={{ marginBottom: 'var(--spacing-xs)', display: 'flex', flexDirection: 'column' }}>
+                                                            <span>{member.firstName}</span>
+                                                            <span>{member.lastName}</span>
+                                                        </h4>
+                                                        {member.type === 'student' ? (
+                                                            <span className="badge" style={{ backgroundColor: '#ef4444', color: 'white' }}>
+                                                                Grade {(member as Student).gradeLevel || ''}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="badge badge-success">
+                                                                Volunteer
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                )}
-                                                <div style={{ flex: 1 }}>
-                                                    <h4 style={{ marginBottom: 'var(--spacing-xs)' }}>
-                                                        {member.firstName} {member.lastName}
-                                                    </h4>
-                                                    <span className={`badge ${member.type === 'student' ? 'badge-primary' : 'badge-success'}`}>
-                                                        {member.type === 'student' ? `Grade ${(member as Student).gradeLevel || ''}` : 'Volunteer'}
-                                                    </span>
                                                 </div>
+                                                {member.type === 'volunteer' && (
+                                                    <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-md)' }}>
+                                                        {(member as Volunteer).totalHours} hours logged
+                                                    </p>
+                                                )}
                                             </div>
-                                            {member.type === 'student' && (member as Student).progressSummary && (
-                                                <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-md)' }}>
-                                                    {((member as Student).progressSummary || '').substring(0, 80)}...
-                                                </p>
-                                            )}
-                                            {member.type === 'volunteer' && (
-                                                <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-md)' }}>
-                                                    {(member as Volunteer).totalHours} hours logged
-                                                </p>
-                                            )}
                                         </div>
-                                        <button
-                                            onClick={() => setMemberToRemove({
+                                    </Link>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            setMemberToRemove({
                                                 id: member.id,
                                                 name: `${member.firstName} ${member.lastName}`,
                                                 type: member.type
-                                            })}
-                                            className="btn btn-sm btn-outline"
-                                            style={{ color: 'var(--secondary-500)', borderColor: 'var(--secondary-500)' }}
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
+                                            });
+                                        }}
+                                        className="btn"
+                                        style={{
+                                            position: 'absolute',
+                                            top: '10px',
+                                            right: '10px',
+                                            width: '24px',
+                                            height: '24px',
+                                            borderRadius: '50%',
+                                            backgroundColor: '#ef4444',
+                                            color: 'white',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            padding: 0,
+                                            border: 'none',
+                                            fontSize: '18px',
+                                            lineHeight: 1,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        -
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -468,6 +532,7 @@ const AdminDashboard: React.FC = () => {
                                 <button
                                     onClick={() => setShowCreateSession(true)}
                                     className="btn btn-primary"
+                                    style={{ whiteSpace: 'nowrap' }}
                                 >
                                     + Create Session
                                 </button>
@@ -478,7 +543,12 @@ const AdminDashboard: React.FC = () => {
                                 <h3 className="mb-md">Upcoming Sessions</h3>
                                 <div className="grid grid-2">
                                     {filteredSessions.filter(s => new Date(s.sessionDate) >= now).map((session) => (
-                                        <div key={session.id} className="card">
+                                        <div
+                                            key={session.id}
+                                            className="card"
+                                            onClick={() => setSelectedSessionDetails(session)}
+                                            style={{ cursor: 'pointer' }}
+                                        >
                                             <div className="flex justify-between items-center">
                                                 <div>
                                                     <h4 style={{ marginBottom: 'var(--spacing-xs)' }}>
@@ -490,6 +560,7 @@ const AdminDashboard: React.FC = () => {
                                                             year: 'numeric',
                                                             month: 'long',
                                                             day: 'numeric',
+                                                            timeZone: 'UTC'
                                                         })}
                                                     </p>
                                                     <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', marginTop: 'var(--spacing-xs)' }}>
@@ -507,7 +578,12 @@ const AdminDashboard: React.FC = () => {
                                 <h3 className="mb-md">Past Sessions</h3>
                                 <div className="grid grid-2">
                                     {filteredSessions.filter(s => new Date(s.sessionDate) < now).map((session) => (
-                                        <div key={session.id} className="card">
+                                        <div
+                                            key={session.id}
+                                            className="card"
+                                            onClick={() => setSelectedSessionDetails(session)}
+                                            style={{ cursor: 'pointer' }}
+                                        >
                                             <div className="flex justify-between items-center">
                                                 <div>
                                                     <h4 style={{ marginBottom: 'var(--spacing-xs)' }}>
@@ -519,6 +595,7 @@ const AdminDashboard: React.FC = () => {
                                                             year: 'numeric',
                                                             month: 'long',
                                                             day: 'numeric',
+                                                            timeZone: 'UTC'
                                                         })}
                                                     </p>
                                                     <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', marginTop: 'var(--spacing-xs)' }}>
@@ -832,6 +909,75 @@ const AdminDashboard: React.FC = () => {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Session Details Modal */}
+                {selectedSessionDetails && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                    }}>
+                        <div className="card" style={{ maxWidth: '800px', width: '100%', margin: 'var(--spacing-lg)', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div className="flex justify-between items-center mb-lg">
+                                <h2>{selectedSessionDetails.title || 'Weekly Tutoring'}</h2>
+                                <button
+                                    onClick={() => setSelectedSessionDetails(null)}
+                                    className="btn btn-outline"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                            <p className="mb-lg text-muted">
+                                {new Date(selectedSessionDetails.sessionDate).toLocaleDateString('en-US', {
+                                    weekday: 'long',
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    timeZone: 'UTC'
+                                })}
+                            </p>
+
+                            <h3 className="mb-md">Attendance & Pairings</h3>
+                            {attendanceRecords.length > 0 ? (
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '2px solid var(--neutral-200)' }}>
+                                                <th style={{ padding: 'var(--spacing-md)', textAlign: 'left' }}>Volunteer</th>
+                                                <th style={{ padding: 'var(--spacing-md)', textAlign: 'left' }}>Student</th>
+                                                <th style={{ padding: 'var(--spacing-md)', textAlign: 'left' }}>Hours</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {attendanceRecords.map((record) => (
+                                                <tr key={record.id} style={{ borderBottom: '1px solid var(--neutral-200)' }}>
+                                                    <td style={{ padding: 'var(--spacing-md)' }}>
+                                                        {record.volunteerFirstName} {record.volunteerLastName}
+                                                    </td>
+                                                    <td style={{ padding: 'var(--spacing-md)' }}>
+                                                        {record.studentFirstName} {record.studentLastName}
+                                                    </td>
+                                                    <td style={{ padding: 'var(--spacing-md)' }}>
+                                                        {record.hoursLogged}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-muted">No attendance records found for this session.</p>
+                            )}
                         </div>
                     </div>
                 )}

@@ -72,7 +72,7 @@ const StudentProfile: React.FC = () => {
       }
 
       setSessions(Array.isArray(sessionsData) ? sessionsData : []);
-      
+
       // Check if current user is the student owner
       if (user?.role === 'student') {
         try {
@@ -82,7 +82,7 @@ const StudentProfile: React.FC = () => {
           setIsStudentOwner(false);
         }
       }
-      
+
       // Fetch workbook progress
       try {
         const progressData = await api.get(`/api/students/${id}/progress`).catch(() => []);
@@ -178,7 +178,7 @@ const StudentProfile: React.FC = () => {
             {photoPreview ? (
               <img src={photoPreview} alt={student.firstName} className="avatar avatar-xl" style={{ objectFit: 'cover' }} />
             ) : (
-              <div className="avatar avatar-xl" style={{ fontSize: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary-gradient)', color: 'white', fontWeight: 700 }}>
+              <div className="avatar avatar-xl" style={{ fontSize: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--student-gradient)', color: 'white', fontWeight: 700 }}>
                 {student.firstName[0]}{student.lastName[0]}
               </div>
             )}
