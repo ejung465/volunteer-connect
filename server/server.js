@@ -55,9 +55,24 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error' });
 });
 
-// 404 handler
-app.use((req, res) => {
-    res.status(404).json({ error: 'Route not found' });
+// Serve static files from the React frontend app
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve static files from the dist directory (one level up from server)
+const distPath = path.join(__dirname, '../dist');
+app.use(express.static(distPath));
+
+// Handle React routing, return all requests to React app
+app.get('*', (req, res) => {
+    // Check if the request is for an API endpoint to avoid returning HTML for API 404s
+    if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: 'API route not found' });
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // Start server
