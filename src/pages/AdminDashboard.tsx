@@ -225,7 +225,7 @@ const AdminDashboard: React.FC = () => {
             {/* Main Container */}
             <div className="relative z-10 flex flex-col min-h-screen w-full max-w-4xl mx-auto shadow-2xl overflow-hidden bg-white/30 dark:bg-slate-900/20 border-x border-white/40 dark:border-white/10 backdrop-blur-sm">
                 {/* Header */}
-                <header className="sticky top-0 z-50 glass-panel border-b-0 pb-2">
+                <header className="sticky top-0 z-50 glass-panel-admin border-b-0 pb-2">
                     <div className="flex items-center justify-between p-4">
                         <button onClick={() => navigate('/')} className="flex size-10 items-center justify-center rounded-full hover:bg-slate-900/5 dark:hover:bg-white/10 transition-colors">
                             <span className="material-symbols-outlined text-slate-800 dark:text-white text-2xl">arrow_back</span>
