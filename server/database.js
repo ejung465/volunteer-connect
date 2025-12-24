@@ -6,7 +6,9 @@ import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const dbPath = join(__dirname, 'database.sqlite');
+
+// Use DB_PATH environment variable if set (for Railway Volumes), otherwise use local file
+const dbPath = process.env.DB_PATH || join(__dirname, 'database.sqlite');
 
 let db;
 let SQL;
