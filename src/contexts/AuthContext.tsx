@@ -13,6 +13,7 @@ export interface User {
 interface AuthContextType {
     user: User | null;
     login: (email: string, password: string) => Promise<void>;
+    register: (email: string, password: string, role: string, firstName: string, lastName: string) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
 }
@@ -61,6 +62,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
+    const register = async (email: string, password: string, role: string, firstName: string, lastName: string) => {
+        try {
+            await api.post('/api/auth/register', { email, password, role, firstName, lastName });
+            // After register, we can automatically login or just let the UI handle it. 
+            // For seamless UX, let's login automatically.
+            await login(email, password);
+        } catch (error) {
+            console.error('Registration error:', error);
+            throw error;
+        }
+    };
+
     const logout = () => {
         setUser(null);
         localStorage.removeItem('user');
@@ -68,7 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
             {children}
         </AuthContext.Provider>
     );

@@ -61,7 +61,7 @@ const StudentDashboard: React.FC = () => {
                 }
 
                 // Fetch sessions
-                const sessionsData = await api.get(`/api/students/${studentData.id}/sessions`).catch(() => []);
+                const sessionsData = await api.get(`/api/students/${studentDatax1.id}/sessions`).catch(() => []);
                 setSessions(Array.isArray(sessionsData) ? sessionsData : []);
 
                 // Fetch progress
