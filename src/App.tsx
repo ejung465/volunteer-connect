@@ -29,7 +29,7 @@ const AppRoutes: React.FC = () => {
 
     return (
         <>
-            {user && <Navbar />}
+            {user && user.role !== 'admin' && <Navbar />}
             <Routes>
                 <Route path="/login" element={user ? <Navigate to={getDefaultRoute()} replace /> : <Login />} />
 
