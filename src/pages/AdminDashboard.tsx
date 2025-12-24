@@ -267,7 +267,7 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Floating Header */}
                 <div className="fixed top-5 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
-                    <header className="glass-panel w-full max-w-md rounded-full px-5 py-3 shadow-premium pointer-events-auto transition-all duration-300 transform hover:scale-[1.01]">
+                    <header className="glass-panel-admin w-full max-w-md rounded-full px-5 py-3 shadow-premium pointer-events-auto transition-all duration-300 transform hover:scale-[1.01]">
                         <div className="flex items-center justify-between">
                             <button
                                 onClick={showBackButton ? handleBack : toggleTheme}

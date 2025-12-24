@@ -19,7 +19,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, on
 
     return (
         <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
-            <nav className="glass-panel w-full max-w-md flex justify-between items-center rounded-full px-4 py-2 shadow-premium pointer-events-auto transform hover:scale-[1.01] transition-transform duration-300">
+            <nav className="glass-panel-admin w-full max-w-md flex justify-between items-center rounded-full px-4 py-2 shadow-premium pointer-events-auto transform hover:scale-[1.01] transition-transform duration-300">
 
                 <button onClick={() => onTabChange('home')} className={`flex-1 ${getTabClass('home')}`}>
                     <Icon name="home" className={`text-[26px] ${activeTab === 'home' ? 'filled' : ''}`} />

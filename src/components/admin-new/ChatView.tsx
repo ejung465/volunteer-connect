@@ -292,7 +292,7 @@ export const ChatView: React.FC = () => {
             <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
                 <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsNewChatOpen(false)} />
                 <div className="w-full max-w-md bg-[#f0f9ff] dark:bg-[#0f172a] h-[85vh] sm:h-[600px] rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 flex flex-col animate-in slide-in-from-bottom-10 duration-300 overflow-hidden">
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center glass-panel bg-white/50 dark:bg-slate-900/50">
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center glass-panel-admin bg-white/50 dark:bg-slate-900/50">
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white">New Message</h2>
                         <button onClick={() => setIsNewChatOpen(false)} className="p-2 rounded-full hover:bg-slate-900/5 dark:hover:bg-white/10 transition-colors">
                             <Icon name="close" className="text-slate-500" />
