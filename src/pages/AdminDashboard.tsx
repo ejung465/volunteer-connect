@@ -10,6 +10,7 @@ import {
     StatsDetailView,
     AddModal,
     QuickActionModal,
+    NotificationsModal,
     Icon,
     GlassCard
 } from '../components/admin-new';
@@ -55,11 +56,17 @@ interface Attendance {
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { logout } = useAuth(); // Assuming Context exposes logout
+    const { logout } = useAuth();
+
+    // UI State
     const [activeTab, setActiveTab] = useState('home');
     const [selectedStat, setSelectedStat] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [quickAction, setQuickAction] = useState<string | null>(null);
+    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
+    const [profileViewMode, setProfileViewMode] = useState<string | null>(null);
 
     // Data States
     const [students, setStudents] = useState<Student[]>([]);
@@ -74,7 +81,63 @@ const AdminDashboard: React.FC = () => {
     // Initial Data Fetch
     useEffect(() => {
         fetchData();
+        // Check local storage or system pref for dark mode if needed
+        if (document.documentElement.classList.contains('dark')) {
+            setIsDarkMode(true);
+        }
     }, []);
+
+    const toggleTheme = () => {
+        setIsDarkMode(!isDarkMode);
+        if (!isDarkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    };
+
+    const handleNotificationsClick = () => {
+        setIsNotificationsOpen(!isNotificationsOpen);
+        if (hasUnreadNotifications) {
+            setHasUnreadNotifications(false);
+        }
+    };
+
+    const handleBack = () => {
+        if (selectedStat) {
+            setSelectedStat(null);
+            return;
+        }
+        if (profileViewMode) {
+            setProfileViewMode(null);
+            return;
+        }
+    };
+
+    const getHeaderTitle = () => {
+        if (selectedStat) return 'Details';
+
+        if (activeTab === 'profile' && profileViewMode) {
+            switch (profileViewMode) {
+                case 'edit': return 'Edit Profile';
+                case 'personal': return 'Personal Info';
+                case 'notifications': return 'Notifications';
+                case 'privacy': return 'Security';
+                case 'help': return 'Help Center';
+                default: return 'My Profile';
+            }
+        }
+
+        switch (activeTab) {
+            case 'home': return 'Dashboard';
+            case 'calendar': return 'Schedule';
+            case 'chat': return 'Inbox';
+            case 'profile': return 'Profile';
+            default: return 'VolunteerConnect';
+        }
+    };
+
+    const showBackButton = selectedStat || (activeTab === 'profile' && profileViewMode);
 
     const fetchData = async () => {
         try {
@@ -192,67 +255,100 @@ const AdminDashboard: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-28 font-manrope transition-colors duration-300">
-            {/* Header (Floating) */}
-            <div className={`p-4 pt-safe-top max-w-md mx-auto relative min-h-screen flex flex-col ${selectedStat ? 'z-50' : ''}`}>
-
-                {/* Back Button for Detail View */}
-                {selectedStat && (
-                    <div className="flex items-center gap-2 mb-4 animate-in slide-in-from-left duration-300">
-                        <button
-                            onClick={() => setSelectedStat(null)}
-                            className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
-                        >
-                            <Icon name="arrow_back" className="text-slate-900 dark:text-white" />
-                        </button>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Back</h2>
-                    </div>
-                )}
-
-                {/* Views */}
-                {selectedStat ? (
-                    <StatsDetailView statId={selectedStat} items={getMappedData(selectedStat)} />
-                ) : (
-                    <>
-                        {activeTab === 'home' && (
-                            <HomeView
-                                onStatClick={setSelectedStat}
-                                onQuickAction={(action) => setQuickAction(action)}
-                            />
-                        )}
-                        {activeTab === 'calendar' && <CalendarView />} {/* TODO: Pass sessions data here */}
-                        {activeTab === 'chat' && <ChatView />}
-                        {activeTab === 'profile' && (
-                            <ProfileView
-                                viewMode={null}
-                                onNavigate={(mode) => console.log('Navigate profile', mode)}
-                                onLogout={() => { logout?.(); navigate('/login'); }}
-                            />
-                        )}
-                    </>
-                )}
+        <>
+            {/* Premium Background Ambience */}
+            <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#f8fafc] dark:bg-[#020617]">
+                <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-purple-400/20 to-indigo-400/20 dark:from-purple-900/20 dark:to-indigo-900/20 blur-[100px] opacity-70 animate-float"></div>
+                <div className="absolute bottom-[0%] left-[-10%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-blue-400/20 to-cyan-400/20 dark:from-blue-900/20 dark:to-cyan-900/20 blur-[80px] opacity-60"></div>
+                <div className="absolute top-[40%] left-[20%] w-[300px] h-[300px] rounded-full bg-fuchsia-400/10 dark:bg-fuchsia-900/10 blur-[90px] animate-pulse"></div>
             </div>
 
-            {/* Navigation & Modals */}
-            <BottomNav
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                onActionClick={() => setIsAddModalOpen(true)}
-            />
+            <div className="relative z-10 flex flex-col min-h-screen w-full max-w-md mx-auto transition-all duration-300">
 
-            <AddModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                onSelectAction={setQuickAction}
-            />
+                {/* Floating Header */}
+                <div className="fixed top-5 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+                    <header className="glass-panel w-full max-w-md rounded-full px-5 py-3 shadow-premium pointer-events-auto transition-all duration-300 transform hover:scale-[1.01]">
+                        <div className="flex items-center justify-between">
+                            <button
+                                onClick={showBackButton ? handleBack : toggleTheme}
+                                className="flex size-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-all active:scale-95 group"
+                            >
+                                <Icon name={showBackButton ? "arrow_back" : (isDarkMode ? "light_mode" : "dark_mode")} className="text-slate-600 dark:text-slate-200 text-xl group-hover:text-primary transition-colors" />
+                            </button>
 
-            <QuickActionModal
-                isOpen={!!quickAction}
-                onClose={() => setQuickAction(null)}
-                action={quickAction}
-                onSubmit={handleQuickActionSubmit}
-            />
-        </div>
+                            <div className="flex flex-col items-center">
+                                <h1 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white mb-0">{getHeaderTitle()}</h1>
+                            </div>
+
+                            <button
+                                onClick={handleNotificationsClick}
+                                className="flex size-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-all active:scale-95 relative group"
+                            >
+                                <Icon name={isNotificationsOpen ? "notifications_active" : "notifications"} className={`text-xl transition-colors ${isNotificationsOpen ? 'text-primary' : 'text-slate-600 dark:text-slate-200 group-hover:text-primary'}`} />
+                                {hasUnreadNotifications && (
+                                    <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"></span>
+                                )}
+                            </button>
+                        </div>
+                    </header>
+                </div>
+
+                {/* Content Area */}
+                <div className={`flex-1 flex flex-col pt-28 px-5 gap-6 pb-28 overflow-y-auto hide-scrollbar`}>
+                    {/* Views */}
+                    {selectedStat ? (
+                        <StatsDetailView statId={selectedStat} items={getMappedData(selectedStat)} />
+                    ) : (
+                        <>
+                            {activeTab === 'home' && (
+                                <HomeView
+                                    onStatClick={setSelectedStat}
+                                    onQuickAction={(action) => setQuickAction(action)}
+                                />
+                            )}
+                            {activeTab === 'calendar' && <CalendarView />} {/* TODO: Pass sessions data here */}
+                            {activeTab === 'chat' && <ChatView />}
+                            {activeTab === 'profile' && (
+                                <ProfileView
+                                    viewMode={profileViewMode}
+                                    onNavigate={setProfileViewMode}
+                                    onLogout={() => { logout?.(); navigate('/login'); }}
+                                />
+                            )}
+                        </>
+                    )}
+                </div>
+
+                {/* Navigation & Modals */}
+                <BottomNav
+                    activeTab={activeTab}
+                    onTabChange={(tab) => {
+                        setActiveTab(tab);
+                        setSelectedStat(null);
+                        setProfileViewMode(null);
+                    }}
+                    onActionClick={() => setIsAddModalOpen(true)}
+                />
+
+                <AddModal
+                    isOpen={isAddModalOpen}
+                    onClose={() => setIsAddModalOpen(false)}
+                    onSelectAction={setQuickAction}
+                />
+
+                <QuickActionModal
+                    isOpen={!!quickAction}
+                    onClose={() => setQuickAction(null)}
+                    action={quickAction}
+                    onSubmit={handleQuickActionSubmit}
+                />
+
+                <NotificationsModal
+                    isOpen={isNotificationsOpen}
+                    onClose={() => setIsNotificationsOpen(false)}
+                />
+            </div>
+        </>
     );
 };
 

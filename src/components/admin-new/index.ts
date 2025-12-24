@@ -8,4 +8,5 @@ export * from './ProfileView';
 export * from './StatsDetailView';
 export * from './AddModal';
 export * from './QuickActionModal';
+export * from './NotificationsModal';
 export * from './types';
