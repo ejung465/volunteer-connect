@@ -1,0 +1,45 @@
+
+/* Compatibility for new UI animations (mocking tailwindcss-animate) */
+.animate-in {
+  animation-fill-mode: forwards;
+  animation-duration: 300ms;
+  opacity: 0; /* meaningful only if animation handles opacity */
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.slide-in-from-right {
+  animation-name: slideInRight;
+}
+
+.slide-in-from-bottom-10 {
+  animation-name: slideInUpSmall;
+}
+
+.zoom-in-95 {
+  animation-name: zoomIn;
+}
+
+@keyframes slideInUpSmall {
+  from { transform: translateY(2.5rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Safe Area */
+.pt-safe-top {
+  padding-top: max(env(safe-area-inset-top), 24px);
+}
+
+/* Ensure glass inputs behave */
+select.appearance-none {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
